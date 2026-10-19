@@ -1,0 +1,15 @@
+{
+  "appId": "nl.buildcalc.app",
+  "appName": "BuildCalc",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "appReadyTimeout": 10000,
+      "resetWhenUpdate": false
+    }
+  }
+}
