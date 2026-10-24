@@ -103,6 +103,16 @@ svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-widt
 .info .row svg { color: var(--gold); width: 20px; height: 20px; flex: none; }
 .info .row .l { width: 96px; color: var(--muted); flex: none; }
 .info .row .v { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.bag { padding: 12px 14px; margin-top: 12px; }
+.bag .bkop { display: flex; align-items: center; gap: 12px; }
+.bag .bkop > svg { color: var(--gold); width: 22px; height: 22px; flex: none; }
+.bag .bkop > div { flex: 1; min-width: 0; } .bag .bkop small { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.bag > button.ghost { margin-top: 8px; color: var(--gold); border: 1px solid var(--gold-dark); border-radius: 10px; padding: 8px 14px; }
+.btype { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; width: 100%; text-align: left; padding: 9px 2px; border-top: 1px solid var(--surface-high); margin-top: 8px; }
+.btype .bt { font-weight: 600; } .btype .bm { color: var(--muted); } .btype .ba { color: var(--gold); font-weight: 700; }
+.btype small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.chip.on { background: var(--gold); color: #000; border-color: var(--gold); } .chip.on small { color: #333 !important; }
+.tile .keer { position: absolute; right: 12px; bottom: 12px; color: var(--gold); font-weight: 700; font-size: 13px; }
 .label { color: var(--gold-dark); font-size: 12px; font-weight: 600; letter-spacing: 1.2px; margin-top: 14px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .tile { position: relative; aspect-ratio: 1.5; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; text-align: left; }
@@ -266,6 +276,7 @@ const IC = {
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   more: '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
+  huis: '<path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/>',
   pin: '<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
   hash: '<path d="M5 9h14M5 15h14M10 4L8 20M16 4l-2 16"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -501,14 +512,16 @@ function renderProject(m, p) {
       <div class="row">${ic('pin')}<span class="l">Adres</span><span class="v">${esc(p.adres)}</span></div>
       <div class="row">${ic('hash')}<span class="l">Werknummer</span><span class="v">${esc(p.werknummer)}</span></div>
       <div class="row">${ic('user')}<span class="l">Klant</span><span class="v">${esc(p.klant)}</span></div></div>
+      ${bagKaartHtml(p)}
       <div class="label">SUBMAPPEN (${n})</div>
       ${n === 0 ? '<p style="text-align:center;color:var(--muted);padding:16px 0">Nog geen submappen. Maak er een aan, bijvoorbeeld Voorgevel of Achtergevel.</p>'
         : '<div class="grid2">' + p.submappen.map(s => `<div class="card tile" data-sub="${s.id}" role="button">
             <span style="color:var(--gold)">${ic('folder')}</span><div><div class="n">${esc(s.naam)}</div>
-            <div class="c">${s.fotos.length} ${s.fotos.length === 1 ? 'foto' : 'foto\'s'}</div></div>
+            <div class="c">${s.fotos.length} ${s.fotos.length === 1 ? 'foto' : 'foto\'s'}</div></div>${keerVan(p, s) > 1 ? `<span class="keer">× ${keerVan(p, s)}</span>` : ''}
             <button class="iconbtn more" data-opt="${s.id}" aria-label="Opties">${ic('more')}</button></div>`).join('') + '</div>'}
     </div><button class="fab" id="nieuwS">${ic('folderPlus')} Nieuwe submap</button>`;
   $('#terug').onclick = () => { stapel = []; render(); };
+  koppelBagKaart(m, p);
   $('#pmenu').onclick = () => menu([['edit', 'Project wijzigen', () => projectForm(p)], ['opslaan', 'Back-up van dit project', () => backupMaken(p)],
     ['trash', 'Project verwijderen', async () => {
       if (!await bevestig('Project verwijderen?', `"${p.adres}" en alle submappen en foto's worden verwijderd.`)) return;
@@ -522,7 +535,7 @@ function renderProject(m, p) {
     const s = p.submappen.find(x => x.id === b.dataset.opt);
     menu([['edit', 'Naam wijzigen', async () => {
       const naam = await vraagNaam('Naam wijzigen', p, s); if (naam) { s.naam = naam; bewaar(); render(); }
-    }], ['trash', 'Submap verwijderen', async () => {
+    }], ['huis', `Aantal keer (nu ${keerVan(p, s)}×)`, () => keerSheet(p, s)], ['trash', 'Submap verwijderen', async () => {
       if (!await bevestig('Submap verwijderen?', `"${s.naam}" en de foto's erin worden verwijderd.`)) return;
       p.submappen = p.submappen.filter(x => x !== s); bewaar(); fotoWeg(s.fotos.map(f => f.id)); render();
     }]]);
@@ -554,11 +567,267 @@ function vraagNaam(titel, p, huidig) {
   });
 }
 
+// ---------- BAG: woningen per gebouw (Kadaster via PDOK, gratis en zonder sleutel) ----------
+// Per adres zoekt de app het gebouw (pand) op, met bouwjaar en alle woningen erin. De woningen worden
+// op oppervlakte in typen verdeeld (A, B, C …): meet één woning per type in en zet de submap op "× type".
+// Alleen het adres gaat naar PDOK en de 3D BAG; geen klantnaam of werknummer.
+const BAG_URL = 'https://api.pdok.nl/kadaster/bag/ogc/v2/collections', BAG3D_URL = 'https://api.3dbag.nl/collections/pand/items/NL.IMBAG.Pand.';
+async function bagJson(url) {
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/geo+json, application/json' } });
+    if (!r.ok) throw new Error(`BAG gaf fout ${r.status}`);
+    return await r.json();
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('BAG reageert niet, probeer het straks opnieuw');
+    if (navigator.onLine === false) throw new Error('Geen internet');
+    throw e;
+  } finally { clearTimeout(t); }
+}
+// "Statenjachtstraat 2, Amsterdam", "Dorpsstraat 12a, 1234 AB Utrecht", "Kerkweg 4-2 Ede" → zoekvelden.
+function adresDelen(adres) {
+  const t = String(adres || '').trim(), pc = /\b(\d{4})\s?([a-z]{2})\b/i.exec(t);
+  const m = /^(.*?[a-zà-ÿ.'])\s+(\d{1,5})\s*([a-z])?(?:\s*[-/]\s*([\w]{1,4}))?\b(.*)$/i.exec(t.replace(/\b\d{4}\s?[a-z]{2}\b/i, ' ').replace(/\s+/g, ' ').trim());
+  if (!m) return null;
+  const plaats = m[5].replace(/^[\s,]+/, '').replace(/,.*$/, '').trim();
+  return { straat: m[1].replace(/,$/, '').trim(), nr: +m[2], letter: (m[3] || '').toUpperCase(), toev: m[4] || '', plaats,
+    postcode: pc ? (pc[1] + pc[2]).toUpperCase() : '' };
+}
+const bagFeatures = j => Array.isArray(j?.features) ? j.features : [];
+// Verwijzing naar een pand: een link of een identificatie, in welke vorm PDOK hem ook geeft.
+const bagRef = x => String(typeof x === 'object' && x ? x.href || x.id || x.identificatie || '' : x || '');
+const bagRefs = v => (Array.isArray(v) ? v : v ? [v] : []).map(bagRef).filter(Boolean);
+async function bagAdresZoek(adres) {
+  const d = adresDelen(adres);
+  if (!d) throw new Error('Geen straat en huisnummer gevonden in het adres');
+  const zoek = async q => bagFeatures(await bagJson(`${BAG_URL}/verblijfsobject/items?f=json&limit=50&${new URLSearchParams(q)}`));
+  let lijst = d.postcode ? await zoek({ postcode: d.postcode, huisnummer: d.nr }) : [];
+  if (!lijst.length) {
+    // Straatnaam zoals in de BAG: hoofdletter vooraan, de rest zoals getypt.
+    const straat = d.straat[0].toUpperCase() + d.straat.slice(1);
+    lijst = await zoek({ openbare_ruimte_naam: straat, huisnummer: d.nr, ...(d.plaats ? { woonplaats_naam: d.plaats[0].toUpperCase() + d.plaats.slice(1) } : {}) });
+    if (!lijst.length && d.plaats) lijst = await zoek({ openbare_ruimte_naam: straat, huisnummer: d.nr });
+  }
+  if (!lijst.length) throw new Error(`Adres niet gevonden in de BAG: ${d.straat} ${d.nr}`);
+  const pas = f => (f.properties.huisletter || '').toUpperCase() === d.letter && String(f.properties.toevoeging || '') === d.toev;
+  const plaatsen = new Set(lijst.map(f => f.properties.woonplaats_naam));
+  if (plaatsen.size > 1 && !d.plaats) throw new Error(`Dit adres bestaat in meer plaatsen (${[...plaatsen].slice(0, 3).join(', ')}). Zet de plaats erachter.`);
+  return lijst.find(pas) || lijst.find(f => (f.properties.huisletter || '').toUpperCase() === d.letter) || lijst[0];
+}
+async function bagPand(ref) {
+  const id = ref.split(/[/?#]/).filter(Boolean).pop();
+  if (/^https?:/.test(ref)) { const j = await bagJson(ref + (ref.includes('?') ? '&' : '?') + 'f=json'); return j.type === 'Feature' ? j : bagFeatures(j)[0]; }
+  return bagFeatures(await bagJson(`${BAG_URL}/pand/items?f=json&identificatie=${encodeURIComponent(id)}`))[0];
+}
+function bagKader(geom) {
+  const pt = []; const loop = c => typeof c[0] === 'number' ? pt.push(c) : c.forEach(loop); loop(geom?.coordinates || []);
+  if (!pt.length) return null;
+  const xs = pt.map(p => p[0]), ys = pt.map(p => p[1]);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+}
+// Alle verblijfsobjecten die in dit pand liggen: alles binnen het kader van het gebouw, en dan alleen die naar dit pand verwijzen.
+async function bagObjecten(pand) {
+  const k = bagKader(pand.geometry); if (!k) return [];
+  const sleutels = [pand.id, pand.properties?.identificatie].filter(Boolean).map(String);
+  const hoort = f => bagRefs(f.properties.pand).some(r => sleutels.some(s => r === s || r.endsWith('/' + s) || r.endsWith(s)));
+  let url = `${BAG_URL}/verblijfsobject/items?f=json&limit=1000&bbox=${k.map(v => v.toFixed(7)).join(',')}`, uit = [];
+  for (let blad = 0; url && blad < 10; blad++) {
+    const j = await bagJson(url);
+    uit.push(...bagFeatures(j).filter(hoort));
+    url = (j.links || []).find(l => l.rel === 'next')?.href || null;
+  }
+  return uit;
+}
+// Zoekt in een antwoord (CityJSON of GeoJSON) naar een veld, waar het ook staat.
+function zoekVeld(o, naam, diep = 0) {
+  if (!o || typeof o !== 'object' || diep > 8) return undefined;
+  if (naam in o && typeof o[naam] !== 'object') return o[naam];
+  for (const v of Object.values(o)) { const r = zoekVeld(v, naam, diep + 1); if (r !== undefined) return r; }
+  return undefined;
+}
+async function bag3d(identificatie) {
+  try {
+    const j = await bagJson(BAG3D_URL + encodeURIComponent(identificatie));
+    const lagen = zoekVeld(j, 'b3_bouwlagen'), nok = zoekVeld(j, 'b3_h_nok') ?? zoekVeld(j, 'b3_h_dak_max'), grond = zoekVeld(j, 'b3_h_maaiveld');
+    return { lagen: Number.isFinite(+lagen) && +lagen > 0 ? Math.round(+lagen) : null,
+      hoogte: Number.isFinite(+nok) && Number.isFinite(+grond) ? Math.round((+nok - +grond) * 10) / 10 : null };
+  } catch { return { lagen: null, hoogte: null }; }
+}
+const isWoning = f => /woon/i.test(String(f.properties.gebruiksdoel || '')) && !/ingetrokken|niet gerealiseerd|ten onrechte|gesloopt/i.test(String(f.properties.status || ''));
+const bagNummer = w => `${w.nr}${w.letter || ''}${w.toev ? '-' + w.toev : ''}`;
+// Haalt het gebouw van een adres op en voegt het toe aan p.bag (een gebouw dat er al is, wordt ververst).
+async function bagGebouwOphalen(p, adres) {
+  const vbo = await bagAdresZoek(adres), ref = bagRefs(vbo.properties.pand)[0];
+  if (!ref) throw new Error('Bij dit adres staat geen gebouw in de BAG');
+  const pand = await bagPand(ref); if (!pand) throw new Error('Gebouw niet gevonden in de BAG');
+  const objecten = await bagObjecten(pand), woningen = objecten.filter(isWoning);
+  const pid = String(pand.properties.identificatie || pand.id), drie = await bag3d(pid);
+  const straat = vbo.properties.openbare_ruimte_naam, plaats = vbo.properties.woonplaats_naam;
+  p.bag ??= { gebouwen: [], woningen: [] };
+  p.bag.gebouwen = p.bag.gebouwen.filter(g => g.id !== pid);
+  const oudType = new Map(p.bag.woningen.map(w => [w.id, w.type]));
+  p.bag.woningen = p.bag.woningen.filter(w => w.pand !== pid);
+  p.bag.gebouwen.push({ id: pid, adres: `${straat} ${vbo.properties.huisnummer}${vbo.properties.huisletter || ''}, ${plaats}`, straat, plaats,
+    bouwjaar: pand.properties.bouwjaar ?? null, objecten: pand.properties.aantal_verblijfsobjecten ?? objecten.length, overig: objecten.length - woningen.length, ...drie });
+  p.bag.woningen.push(...woningen.map(f => ({ id: String(f.properties.identificatie || f.id), pand: pid, straat: f.properties.openbare_ruimte_naam,
+    nr: +f.properties.huisnummer, letter: f.properties.huisletter || '', toev: f.properties.toevoeging || '', m2: +f.properties.oppervlakte || 0, type: oudType.get(String(f.properties.identificatie || f.id)) || null })));
+  p.bag.opgehaald = new Date().toISOString();
+  if (!woningen.length) return p.bag;
+  // Nieuwe woningen zonder type: op oppervlakte in groepjes; binnen ±6% (min. 3 m²) is hetzelfde type.
+  const nieuw = p.bag.woningen.filter(w => !w.type).sort((a, b) => a.m2 - b.m2);
+  let groep = null, start = 0;
+  for (const w of nieuw) {
+    if (!groep || w.m2 > start + Math.max(3, start * 0.06)) { groep = volgendeType(p); start = w.m2; }
+    w.type = groep;
+  }
+  return p.bag;
+}
+function volgendeType(p) {
+  const bezet = new Set(p.bag.woningen.map(w => w.type).concat(Object.keys(p.bag.namen || {})));
+  for (let i = 0; ; i++) { const t = i < 26 ? String.fromCharCode(65 + i) : 'T' + (i + 1); if (!bezet.has(t)) { bezet.add(t); return t; } }
+}
+// Typen met aantal, oppervlakte en huisnummers, in volgorde van oppervlakte.
+function bagTypen(p) {
+  const m = new Map();
+  for (const w of p.bag?.woningen || []) { if (!m.has(w.type)) m.set(w.type, []); m.get(w.type).push(w); }
+  return [...m.entries()].map(([id, ws]) => {
+    const m2 = ws.map(w => w.m2).filter(Boolean).sort((a, b) => a - b);
+    return { id, naam: p.bag.namen?.[id] || `Type ${id}`, woningen: ws, aantal: ws.length,
+      m2: m2.length ? (m2[0] === m2.at(-1) ? `${m2[0]} m²` : `${m2[0]}–${m2.at(-1)} m²`) : '', min: m2[0] || 0 };
+  }).sort((a, b) => a.min - b.min || a.id.localeCompare(b.id));
+}
+// "2, 4, 6, 8, 12" → "2–8, 12"; per straat, in stappen van 1 of 2.
+function nummerReeks(ws) {
+  const perStraat = new Map();
+  for (const w of ws) { if (!perStraat.has(w.straat)) perStraat.set(w.straat, []); perStraat.get(w.straat).push(w); }
+  const straten = [...perStraat.entries()].map(([straat, lijst]) => {
+    const nrs = lijst.sort((a, b) => a.nr - b.nr || bagNummer(a).localeCompare(bagNummer(b)));
+    const stukken = []; let i = 0;
+    while (i < nrs.length) {
+      if (nrs[i].letter || nrs[i].toev) { stukken.push(bagNummer(nrs[i])); i++; continue; }
+      let j = i, stap = nrs[i + 1] && !nrs[i + 1].letter && !nrs[i + 1].toev ? nrs[i + 1].nr - nrs[i].nr : 0;
+      if (stap === 1 || stap === 2) while (nrs[j + 1] && !nrs[j + 1].letter && !nrs[j + 1].toev && nrs[j + 1].nr - nrs[j].nr === stap) j++;
+      stukken.push(j - i >= 2 ? `${nrs[i].nr}–${nrs[j].nr}` : nrs.slice(i, j + 1).map(w => w.nr).join(', ')); i = j + 1;
+    }
+    return { straat, tekst: stukken.join(', ') };
+  });
+  return straten.length === 1 ? straten[0].tekst : straten.map(s => `${s.straat} ${s.tekst}`).join('; ');
+}
+// Hoe vaak een submap telt in de meetstaat: het aantal woningen van het gekozen type, of een eigen getal.
+function keerVan(p, s) {
+  if (s.keer?.type) { const t = bagTypen(p).find(t => t.id === s.keer.type); return t ? t.aantal : 1; }
+  return Math.max(1, Math.round(+s.keer?.n || 1));
+}
+// Regels voor het rapport: woningen en typen uit de BAG.
+const bagRijen = p => p.bag?.gebouwen?.length ? [['BAG', bagSamenvatting(p)], ...bagTypen(p).map(t => [t.naam, `${t.aantal}× • ${t.m2} • nrs ${nummerReeks(t.woningen)}`])] : [];
+const keerNaam = (p, s) => s.keer?.type ? bagTypen(p).find(t => t.id === s.keer.type)?.naam || '' : '';
+function bagSamenvatting(p) {
+  const g = p.bag?.gebouwen || [], n = p.bag?.woningen?.length || 0;
+  if (!g.length) return '';
+  const jaren = [...new Set(g.map(x => x.bouwjaar).filter(Boolean))], lagen = [...new Set(g.map(x => x.lagen).filter(Boolean))];
+  return [`${n} ${n === 1 ? 'woning' : 'woningen'}`, g.length > 1 ? `${g.length} gebouwen` : '', jaren.length ? `bouwjaar ${jaren.join(', ')}` : '',
+    lagen.length ? `${lagen.join('/')} bouwlagen` : ''].filter(Boolean).join(' • ');
+}
+function bagKaartHtml(p) {
+  if (!p.bag?.gebouwen?.length) return `<div class="card bag"><div class="bkop">${ic('huis')}<div><b>Woningen uit de BAG</b><small>Aantal woningen, bouwjaar en woningtypen bij dit adres</small></div></div>
+    <button class="ghost gold" id="bagHaal">${ic('huis')} Ophalen</button></div>`;
+  const typen = bagTypen(p);
+  return `<div class="card bag"><div class="bkop">${ic('huis')}<div><b>${esc(bagSamenvatting(p))}</b><small>BAG • ${esc(p.bag.gebouwen.map(g => g.adres).join(' | '))}</small></div>
+      <button class="iconbtn" id="bagMenu" aria-label="BAG-opties">${ic('more')}</button></div>
+    ${typen.length ? typen.map(t => { const sub = p.submappen.find(s => s.keer?.type === t.id);
+      return `<button class="btype" data-type="${t.id}"><span class="bt">${esc(t.naam)}</span><span class="bm">${esc(t.m2)}</span><span class="ba">${t.aantal}×</span>
+        <small>${esc(nummerReeks(t.woningen))}${sub ? ` • submap ${esc(sub.naam)}` : ''}</small></button>`; }).join('')
+      : '<div style="color:var(--muted);padding:6px 0">Geen woningen in dit gebouw volgens de BAG.</div>'}</div>`;
+}
+function koppelBagKaart(m, p) {
+  const haal = async adres => {
+    toast('BAG ophalen…');
+    try { await bagGebouwOphalen(p, adres); bewaar(); render(); toast(bagSamenvatting(p) || 'Opgehaald'); }
+    catch (e) { toast(`BAG: ${e.message === 'Failed to fetch' ? 'geen verbinding met de BAG' : e.message}`); }
+  };
+  const h = $('#bagHaal', m); if (h) h.onclick = () => haal(p.adres);
+  const mn = $('#bagMenu', m);
+  if (mn) mn.onclick = () => menu([
+    ['plus', 'Ander gebouw erbij (adres)', async () => { const a = await vraagTekst('Ander gebouw erbij', 'Adres', 'Bijv. Statenjachtstraat 180, Amsterdam'); if (a) haal(a); }],
+    ['terugzet', 'Opnieuw ophalen', async () => { for (const g of [...p.bag.gebouwen]) await haal(g.adres); }],
+    ['trash', 'BAG-gegevens weghalen', async () => {
+      if (!await bevestig('BAG-gegevens weghalen?', 'Het aantal woningen en de typen verdwijnen uit dit project. Submappen met "× type" tellen dan weer 1 keer.', { ja: 'Weghalen' })) return;
+      delete p.bag; bewaar(); render(); }]]);
+  m.querySelectorAll('[data-type]').forEach(b => b.onclick = () => bagTypeSheet(p, b.dataset.type));
+}
+function vraagTekst(titel, label, hint, waarde = '') {
+  return new Promise(res => {
+    const d = dialoog(`<h2>${titel}</h2>${veld('t', label, hint, waarde)}<div class="actions"><button id="nee">Annuleren</button><button id="ja">OK</button></div>`, () => res(null));
+    const inp = $('input', d), klaar = v => { sluit(d); res(v); };
+    $('#ja', d).onclick = () => klaar(inp.value.trim() || null); $('#nee', d).onclick = () => klaar(null);
+    inp.onkeydown = e => { if (e.key === 'Enter') klaar(inp.value.trim() || null); };
+    setTimeout(() => inp.focus(), 50);
+  });
+}
+// Eén type: huisnummers, naam wijzigen, woningen afsplitsen naar een nieuw type, en een submap om één woning in te meten.
+function bagTypeSheet(p, id) {
+  const t = bagTypen(p).find(x => x.id === id); if (!t) return;
+  const gekozen = new Set();
+  const sub = p.submappen.find(s => s.keer?.type === id);
+  const s = sheet(`<h2>${esc(t.naam)} <small style="color:var(--muted);font-weight:400">${t.aantal} woningen • ${esc(t.m2)}</small></h2>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Tik woningen aan die anders zijn (bijv. hoekwoningen) en zet ze in een eigen type.</div>
+    <div class="chips" id="btW">${t.woningen.sort((a, b) => a.straat.localeCompare(b.straat) || a.nr - b.nr).map(w =>
+      `<button class="chip" data-w="${esc(w.id)}">${esc(bagNummer(w))} <small style="color:var(--muted)">${w.m2 || '?'} m²</small></button>`).join('')}</div>
+    <div class="actions" style="flex-wrap:wrap;gap:8px;justify-content:flex-start">
+      <button id="btSplits" disabled>Naar nieuw type</button><button id="btNaam">Naam wijzigen</button>
+      <button class="primary" id="btSub" style="width:auto;padding:12px 18px;margin:0">${sub ? `Naar submap ${esc(sub.naam)}` : 'Submap maken (× ' + t.aantal + ')'}</button></div>`);
+  const knop = $('#btSplits', s);
+  s.querySelectorAll('[data-w]').forEach(c => c.onclick = () => {
+    gekozen.has(c.dataset.w) ? gekozen.delete(c.dataset.w) : gekozen.add(c.dataset.w);
+    c.classList.toggle('on', gekozen.has(c.dataset.w));
+    knop.disabled = !gekozen.size || gekozen.size === t.aantal;
+    knop.textContent = gekozen.size ? `${gekozen.size} naar nieuw type` : 'Naar nieuw type';
+  });
+  knop.onclick = () => {
+    const nt = volgendeType(p);
+    p.bag.woningen.forEach(w => { if (gekozen.has(w.id)) w.type = nt; });
+    bewaar(); sluit(s); render(); toast(`Type ${nt}: ${gekozen.size} ${gekozen.size === 1 ? 'woning' : 'woningen'}`);
+  };
+  $('#btNaam', s).onclick = async () => {
+    const n = await vraagTekst('Naam van het type', 'Naam', 'Bijv. 3-kamer of Hoekwoning', t.naam);
+    if (!n) return; p.bag.namen = { ...p.bag.namen, [id]: n }; bewaar(); sluit(s); render();
+  };
+  $('#btSub', s).onclick = () => {
+    sluit(s);
+    let doel = sub;
+    if (!doel) {
+      const bestaand = new Set(p.submappen.map(x => x.naam.toLowerCase()));
+      let naam = `Woning ${t.naam}`; for (let i = 2; bestaand.has(naam.toLowerCase()); i++) naam = `Woning ${t.naam} (${i})`;
+      doel = { id: nieuwId(), naam, aangemaakt: new Date().toISOString(), fotos: [], notities: [], keer: { type: id } };
+      p.submappen.push(doel); bewaar();
+      toast(`Submap "${naam}" telt ${t.aantal} keer in de meetstaat`);
+    }
+    stapel = [p.id, doel.id]; render();
+  };
+}
+// Submap-optie: hoe vaak deze submap meetelt (× type uit de BAG, of een eigen aantal).
+function keerSheet(p, s) {
+  const typen = bagTypen(p), nu = keerVan(p, s);
+  const sh = sheet(`<h2>Hoe vaak telt "${esc(s.naam)}"?</h2>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:10px">Meet één woning in; de meetstaat zet het aantal keer bij deze submap, zoals in Topcalc.</div>
+    ${typen.length ? `<div class="chips">${typen.map(t => `<button class="chip ${s.keer?.type === t.id ? 'on' : ''}" data-t="${t.id}">${esc(t.naam)} • ${t.aantal}×</button>`).join('')}</div>` : ''}
+    <div class="teller" style="margin-top:14px"><span>Eigen aantal</span><button id="kMin" aria-label="Minder">−</button>
+      <input id="kN" type="number" inputmode="numeric" min="1" value="${s.keer?.type ? 1 : nu}"><button id="kPlus" aria-label="Meer">+</button></div>
+    <div class="actions"><button id="kEen">1 keer</button><button class="primary" id="kOk" style="width:auto;padding:12px 24px;margin:0">Opslaan</button></div>`);
+  const zet = k => { if (k) s.keer = k; else delete s.keer; bewaar(); sluit(sh); render(); };
+  sh.querySelectorAll('[data-t]').forEach(c => c.onclick = () => zet({ type: c.dataset.t }));
+  const inp = $('#kN', sh);
+  $('#kMin', sh).onclick = () => { inp.value = Math.max(1, (+inp.value || 1) - 1); };
+  $('#kPlus', sh).onclick = () => { inp.value = (+inp.value || 0) + 1; };
+  $('#kEen', sh).onclick = () => zet(null);
+  $('#kOk', sh).onclick = () => { const n = Math.max(1, Math.round(+inp.value || 1)); zet(n > 1 ? { n } : null); };
+}
+
 // ---------- submap met foto's ----------
 function renderSubmap(m, p, s) {
   const n = s.fotos.length;
   m.innerHTML = `<div class="sub"><button class="iconbtn" id="terug" aria-label="Terug">${ic('back')}</button>
-      <div class="t"><b>${esc(s.naam)}</b><small>${esc(p.adres)} • ${n} ${n === 1 ? 'foto' : 'foto\'s'}</small></div>
+      <div class="t"><b>${esc(s.naam)}</b><small>${esc(p.adres)} • ${n} ${n === 1 ? 'foto' : 'foto\'s'}${keerVan(p, s) > 1 ? ` • telt ${keerVan(p, s)}×` : ''}</small></div>
       <button class="iconbtn" id="gal" aria-label="Foto uit galerij">${ic('gallery')}</button></div>
     ${n === 0 ? `<div class="ph">${ic('gallery', 'i big')}<h3>Nog geen foto's in deze submap</h3><p>Tik op de gouden cameraknop om een foto te maken. Hij wordt direct in deze submap bewaard.</p></div>`
       : `<div class="grid3" ${s.notities.length ? 'style="padding-bottom:12px"' : ''}>` + s.fotos.map((f, i) => `<button class="thumb" data-i="${i}"><img data-foto="${f.id}" alt="">${f.lijnen.length ? `<span class="badge">${f.lijnen.length} ${f.lijnen.length === 1 ? 'lijn' : 'lijnen'}</span>` : ''}</button>`).join('') + '</div>'}
@@ -1666,7 +1935,7 @@ const termWeergave = x => (x.aantal != null ? `${x.aantal}x ` : '') + x.naam;
 // ---------- Android-app (Capacitor) ----------
 // In de app draait deze pagina in een WebView. Spraak, Bluetooth en bestanden lopen daar via de
 // ingebouwde plug-ins; in de browser blijft alles zoals het was.
-const APP_VERSIE = '2026.10.24-6';
+const APP_VERSIE = '2026.10.24-7';
 const UPDATE_URL = 'https://buildcalc-pro.github.io/buildcalc/';
 const Native = window.Capacitor?.isNativePlatform?.() ? window.Capacitor : null;
 const plugins = {};
@@ -2789,13 +3058,13 @@ function formTabelHtml(regels) {
 }
 // De meetstaat zoals in Topcalc: per gevel (submap) genummerd "01. Voorgevel", alle regels op volgorde van opname.
 function meetstaat(p) {
-  return p.submappen.map((s, i) => ({ nr: String(i + 1).padStart(2, '0'), naam: s.naam,
+  return p.submappen.map((s, i) => ({ nr: String(i + 1).padStart(2, '0'), naam: s.naam, keer: keerVan(p, s), type: keerNaam(p, s),
     regels: [...(s.notities || [])].reverse().flatMap(n => formRegels(n, s)) })).filter(g => g.regels.length);
 }
 function meetstaatHtml(p) {
   const g = meetstaat(p);
   if (!g.length) return '<div style="color:var(--muted)">Nog geen regels. Spreek opnames in bij de foto\'s of in de submap.</div>';
-  return `<div class="card meetstaat">${g.map(x => `<div class="gevel">${x.nr}. ${esc(x.naam)} <span>1 x</span></div>${formTabelHtml(x.regels)}`).join('')}</div>`;
+  return `<div class="card meetstaat">${g.map(x => `<div class="gevel">${x.nr}. ${esc(x.naam)} <span>${x.keer} x${x.type ? ` (${esc(x.type)})` : ''}</span></div>${formTabelHtml(x.regels)}`).join('')}</div>`;
 }
 const postRij = p => [p.object, p.onderdeel, p.omschrijving, p.aantal, p.eenheid, p.bewerking, p.locatie, p.breedte, p.hoogte, p.lengte, p.open ? 'Open ?' : 'Compleet', p.opmerking];
 // Invoerlijst om met de hand in Topcalc te typen: gelijke code en bestekcode samengevoegd, op volgorde van object en onderdeel.
@@ -3406,8 +3675,8 @@ async function maakPdf(p, posten) {
   const ruimte = n => { if (y + n > pdf.H - M - 20) nieuwePagina(); };
   nieuwePagina();
   pdf.tekst(M, y + 16, 'Opnamerapport', 22, { vet: true }); y += 34;
-  for (const [k, v] of [['Adres', p.adres], ['Werknummer', p.werknummer], ['Klant', p.klant], ['Datum', datumNL(new Date())]]) {
-    pdf.tekst(M, y + 10, k, 10, { kleur: '#757575' }); pdf.tekst(M + 90, y + 10, v, 10); y += 15;
+  for (const [k, v] of [['Adres', p.adres], ['Werknummer', p.werknummer], ['Klant', p.klant], ['Datum', datumNL(new Date())], ...bagRijen(p)]) {
+    pdf.tekst(M, y + 10, k, 10, { kleur: '#757575' }); for (const r of breek(String(v ?? ''), 10, B - 90)) { ruimte(15); pdf.tekst(M + 90, y + 10, r, 10); y += 15; }
   }
   // Meetstaat zoals in Topcalc, om regel voor regel over te typen.
   const ms = meetstaat(p);
@@ -3420,7 +3689,7 @@ async function maakPdf(p, posten) {
     const mkop = () => { pdf.rect(M, y, B, 16, '#212121'); let x = M; FORM_KOLOMMEN.forEach((k, c) => { pdf.tekst(mr[c] ? x + mk[c] - 4 : x + 4, y + 11, k, 8.5, { vet: true, kleur: '#D4AF37', rechts: mr[c] }); x += mk[c]; }); y += 16; };
     for (const g of ms) {
       if (y + 50 > pdf.H - M - 20) nieuwePagina();
-      y += 6; pdf.tekst(M, y + 11, `${g.nr}. ${g.naam}`, 10.5, { vet: true }); pdf.tekst(M + B, y + 11, '1 x', 9, { kleur: '#757575', rechts: true }); y += 16;
+      y += 6; pdf.tekst(M, y + 11, `${g.nr}. ${g.naam}`, 10.5, { vet: true }); pdf.tekst(M + B, y + 11, `${g.keer} x${g.type ? ` (${g.type})` : ''}`, 9, { kleur: '#757575', rechts: true }); y += 16;
       mkop();
       g.regels.forEach((r, i) => {
         const cellen = r.map((v, c) => c === 2 ? breek(v, 9, mk[c] - 8) : [v]);
@@ -3521,11 +3790,11 @@ function renderRapport(m) {
     RP.bezig = null; render();
   };
   const excel = () => maakXlsx([
-    { naam: 'Meetstaat', kop: ['Gevel', ...FORM_KOLOMMEN], rijen: meetstaat(p).flatMap(g => g.regels.map(r => [`${g.nr}. ${g.naam}`, ...r.map((v, c) => c > 2 && c < 7 && /^\d+$/.test(v) ? +v : v)])), breedtes: [18, 7, 7, 40, 9, 9, 10, 8, 10] },
+    { naam: 'Meetstaat', kop: ['Gevel', 'Keer', ...FORM_KOLOMMEN], rijen: meetstaat(p).flatMap(g => g.regels.map(r => [`${g.nr}. ${g.naam}`, g.keer, ...r.map((v, c) => c > 2 && c < 7 && /^\d+$/.test(v) ? +v : v)])), breedtes: [18, 6, 7, 7, 40, 9, 9, 10, 8, 10] },
     { naam: 'Opname', kop: TOPCALC_KOLOMMEN, rijen: [...posten].sort((a, b) => (!a.object - !b.object) || postCode(a).localeCompare(postCode(b))).map(postRij), breedtes: [8, 10, 45, 10, 8, 28, 16, 11, 11, 11, 10, 50] },
     { naam: 'Maten', kop: ['Locatie', 'Foto', 'TopCalc code', 'Lijn', 'Richting', 'Maat (m)', 'Aantal stijlen/dorpels', 'Bron'],
       rijen: maten.map(x => [x.locatie, x.foto, x.code, x.nr, x.lijn.richting === 'horizontaal' ? 'Horizontaal' : 'Verticaal', x.lijn.maat, lijnAantal(x.lijn), x.lijn.bron || (x.lijn.maat == null ? 'open' : '')]), breedtes: [16, 6, 12, 6, 12, 10, 12, 10] },
-    { naam: 'Project', kop: ['Veld', 'Waarde'], rijen: [['Adres', p.adres], ['Werknummer', p.werknummer], ['Klant', p.klant]], breedtes: [14, 40] },
+    { naam: 'Project', kop: ['Veld', 'Waarde'], rijen: [['Adres', p.adres], ['Werknummer', p.werknummer], ['Klant', p.klant], ...bagRijen(p)], breedtes: [14, 60] },
   ]);
   $('#rpXlsx').onclick = () => exporteer('xlsx', async () => download(excel(), bestandsnaam(p, 'xlsx')));
   $('#rpPdf').onclick = () => exporteer('pdf', async () => download(await maakPdf(p, posten), bestandsnaam(p, 'pdf')));
