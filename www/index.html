@@ -1666,7 +1666,7 @@ const termWeergave = x => (x.aantal != null ? `${x.aantal}x ` : '') + x.naam;
 // ---------- Android-app (Capacitor) ----------
 // In de app draait deze pagina in een WebView. Spraak, Bluetooth en bestanden lopen daar via de
 // ingebouwde plug-ins; in de browser blijft alles zoals het was.
-const APP_VERSIE = '2026.10.24-4';
+const APP_VERSIE = '2026.10.24-5';
 const UPDATE_URL = 'https://buildcalc-pro.github.io/buildcalc/';
 const Native = window.Capacitor?.isNativePlatform?.() ? window.Capacitor : null;
 const plugins = {};
@@ -1784,7 +1784,8 @@ async function zoekUpdate(handmatig = false) {
     const info = await r.json();
     if (!info?.versie || !nieuwer(info.versie, APP_VERSIE)) { zet('actueel'); if (handmatig) toast(`Je hebt de nieuwste versie (${APP_VERSIE}).`); return; }
     zet('downloaden', info.versie); toast(`Nieuwe versie ${info.versie} wordt gedownload…`);
-    const bundel = await metLimiet(up.download({ url: new URL(info.zip, UPDATE_URL).href, version: info.versie }), 180000, 'downloaden duurde te lang');
+    if (!info.checksum) throw new Error('controlegetal ontbreekt in versie.json');
+    const bundel = await metLimiet(up.download({ url: new URL(info.zip, UPDATE_URL).href, version: info.versie, checksum: info.checksum }), 180000, 'downloaden duurde te lang');
     zet('nieuw', info.versie);
     if (!await bevestig('Nieuwe versie klaar', `Versie ${info.versie} staat klaar. Je projecten en foto's blijven bewaard. Nu herstarten?`, { ja: 'Nu herstarten', nee: 'Later', klasse: 'primary' })) {
       await up.next({ id: bundel.id }); toast('De nieuwe versie start de volgende keer dat je de app opent.'); return;
@@ -2922,6 +2923,9 @@ async function geminiDuid(tekst, locatie) {
   for (let poging = 0; poging < 8; poging++) {
     // Na drukte of een traag antwoord: het lichtere reservemodel, dat meestal sneller antwoordt.
     const model = (druk >= 3 || traag) && !AI.geenReserve ? GEMINI_RESERVE : GEMINI_MODELLEN[AI.model];
+    // Gratis Gemini staat maar een paar vragen per minuut toe: minstens 7 seconden tussen twee vragen.
+    const rust = (AI.laatste || 0) + 7000 - Date.now(); if (rust > 0) await wachtMs(rust);
+    AI.laatste = Date.now();
     const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 30000);
     let r, body;
     try {
@@ -2945,7 +2949,7 @@ async function geminiDuid(tekst, locatie) {
     if (r.status === 400 && snel && body.includes('thinking')) { snel = false; continue; }
     // Google even overbelast: na 1, 2 en 4 seconden opnieuw, daarna met het reservemodel.
     if (geminiDruk(r.status) && druk < 4) { druk++; await wachtMs([1000, 2000, 4000, 1000][druk - 1]); continue; }
-    if (geminiDruk(r.status)) later();
+    if (geminiDruk(r.status) || r.status === 429) later();
     aiMeld('fout', geminiDruk(r.status) ? 'Google is even overbelast, later vanzelf opnieuw' : [400, 401, 403].includes(r.status) ? 'Sleutel ongeldig of niet toegestaan' : r.status === 429 ? 'Gratis limiet even bereikt, later opnieuw' : `Gemini gaf fout ${r.status}`);
     return null;
   }
