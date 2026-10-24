@@ -1666,7 +1666,7 @@ const termWeergave = x => (x.aantal != null ? `${x.aantal}x ` : '') + x.naam;
 // ---------- Android-app (Capacitor) ----------
 // In de app draait deze pagina in een WebView. Spraak, Bluetooth en bestanden lopen daar via de
 // ingebouwde plug-ins; in de browser blijft alles zoals het was.
-const APP_VERSIE = '2026.10.24-5';
+const APP_VERSIE = '2026.10.24-6';
 const UPDATE_URL = 'https://buildcalc-pro.github.io/buildcalc/';
 const Native = window.Capacitor?.isNativePlatform?.() ? window.Capacitor : null;
 const plugins = {};
@@ -2841,7 +2841,9 @@ const lijnMaten = p => p.submappen.flatMap(s => s.fotos.flatMap((f, fi) => f.lij
 // Zonder internet of sleutel blijven de regels en de geleerde correcties gewoon werken.
 const GEMINI_INGEBOUWD = ''; // vaste sleutel voor het hele team, in te vullen bij het bouwen
 const GEMINI_KEY = 'buildcalc.gemini.sleutel';
-const GEMINI_MODELLEN = ['gemini-flash-latest', 'gemini-3.8-flash'];
+// Volgorde van proberen. Geeft Google bij een model "limiet bereikt" (429, soms met limiet 0 voor gratis
+// sleutels), dan gaat de app meteen door naar het volgende model; elk model heeft een eigen gratis tegoed.
+const GEMINI_MODELLEN = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-2.5-flash'];
 // Reserve als Google het druk heeft (fout 503): eerst even wachten en opnieuw, daarna een lichter model.
 const GEMINI_RESERVE = 'gemini-flash-lite-latest';
 const geminiDruk = status => status === 503 || status === 500 || status === 502 || status === 504;
@@ -2914,13 +2916,20 @@ function leesGeminiAntwoord(j) {
     return Object.fromEntries(Object.entries(d).filter(([k, v]) => velden.includes(k) && v != null));
   } catch { return null; }
 }
+// Wat Google zegt bij 429, kort en in gewone taal. "limit: 0" betekent: geen gratis tegoed op deze sleutel.
+function limietTekst(m) {
+  if (/limit:\s*0\b/i.test(m)) return 'Google geeft deze sleutel geen gratis tegoed (limiet 0). Maak een nieuwe sleutel in Google AI Studio.';
+  if (/per ?day|PerDay/i.test(m)) return 'Gratis daglimiet van Google op, morgen weer';
+  const kort = m.replace(/\s+/g, ' ').replace(/https?:\S+/g, '').slice(0, 140).trim();
+  return 'Gratis limiet even bereikt, later opnieuw' + (kort ? ` (Google: ${kort})` : '');
+}
 async function geminiDuid(tekst, locatie) {
   if (!aiSleutel()) return null;
   aiMeld('bezig');
-  let snel = true, druk = 0, traag = 0, netwerk = 0;
+  let snel = true, druk = 0, traag = 0, netwerk = 0, limiet = 0, googleMelding = '';
   // Lukt het niet, dan over een minuut stil opnieuw (de notities blijven gewoon staan).
   const later = () => { if (!AI.wachtTimer) AI.wachtTimer = setTimeout(() => { AI.wachtTimer = null; aiBijwerken(); }, 60000); };
-  for (let poging = 0; poging < 8; poging++) {
+  for (let poging = 0; poging < 14; poging++) {
     // Na drukte of een traag antwoord: het lichtere reservemodel, dat meestal sneller antwoordt.
     const model = (druk >= 3 || traag) && !AI.geenReserve ? GEMINI_RESERVE : GEMINI_MODELLEN[AI.model];
     // Gratis Gemini staat maar een paar vragen per minuut toe: minstens 7 seconden tussen twee vragen.
@@ -2945,12 +2954,18 @@ async function geminiDuid(tekst, locatie) {
     clearTimeout(t);
     if (r.ok) { let d = null; try { d = leesGeminiAntwoord(JSON.parse(body)); } catch {} aiMeld(d ? 'aan' : 'fout', d ? null : 'Onverwacht antwoord van Gemini'); return d; }
     if (r.status === 404 && model === GEMINI_RESERVE) { AI.geenReserve = true; continue; } // reservemodel bestaat niet (meer)
-    if (r.status === 404 && AI.model < GEMINI_MODELLEN.length - 1) { AI.model++; continue; }
+    if (r.status === 404 && AI.model < GEMINI_MODELLEN.length - 1) { AI.model++; AI.laatste = 0; continue; }
+    // Limiet bereikt: het echte bericht van Google bewaren en direct een ander model proberen.
+    if (r.status === 429) {
+      try { googleMelding = String(JSON.parse(body).error?.message || ''); } catch {}
+      if (model !== GEMINI_RESERVE && limiet < GEMINI_MODELLEN.length - 1) { limiet++; AI.model = (AI.model + 1) % GEMINI_MODELLEN.length; AI.laatste = 0; continue; }
+      if (model !== GEMINI_RESERVE && !AI.geenReserve) { traag = 1; AI.laatste = 0; continue; } // nog één keer met het lichte model
+    }
     if (r.status === 400 && snel && body.includes('thinking')) { snel = false; continue; }
     // Google even overbelast: na 1, 2 en 4 seconden opnieuw, daarna met het reservemodel.
     if (geminiDruk(r.status) && druk < 4) { druk++; await wachtMs([1000, 2000, 4000, 1000][druk - 1]); continue; }
     if (geminiDruk(r.status) || r.status === 429) later();
-    aiMeld('fout', geminiDruk(r.status) ? 'Google is even overbelast, later vanzelf opnieuw' : [400, 401, 403].includes(r.status) ? 'Sleutel ongeldig of niet toegestaan' : r.status === 429 ? 'Gratis limiet even bereikt, later opnieuw' : `Gemini gaf fout ${r.status}`);
+    aiMeld('fout', geminiDruk(r.status) ? 'Google is even overbelast, later vanzelf opnieuw' : [400, 401, 403].includes(r.status) ? 'Sleutel ongeldig of niet toegestaan' : r.status === 429 ? limietTekst(googleMelding) : `Gemini gaf fout ${r.status}`);
     return null;
   }
   aiMeld('fout', 'Gemini werkt even niet, later vanzelf opnieuw'); later();
