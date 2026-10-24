@@ -818,11 +818,13 @@ async function naarFoto(i) {
   // De buren alvast laden, zodat vegen meteen de foto laat zien.
   for (const j of [i - 1, i + 1]) if (V.s.fotos[j]) fotoData(V.s.fotos[j].id);
 }
+const FOTO_RAND = 28, ZOOM_SPEELRUIMTE = 120;
 // Past de foto passend (contain) in het scherm en legt de tekenlaag er precies over.
 function schik() {
   if (!V?.maat) return;
   const st = $('#stage', V.el).getBoundingClientRect();
-  const k = Math.min(st.width / V.maat.w, st.height / V.maat.h);
+  // Ruimte rondom de foto, zodat je lijnen aan de rand (vooral onderaan bij de knoppen) makkelijk pakt.
+  const k = Math.min((st.width - 2 * FOTO_RAND) / V.maat.w, (st.height - 2 * FOTO_RAND) / V.maat.h);
   const w = V.maat.w * k, h = V.maat.h * k, surf = $('#surf', V.el);
   Object.assign(surf.style, { width: w + 'px', height: h + 'px', left: (st.width - w) / 2 + 'px', top: (st.height - h) / 2 + 'px' });
   V.w = w; V.h = h; zetZoom(1); tekenLijnen();
@@ -1160,9 +1162,11 @@ function zetZoom(s, tx = 0, ty = 0) {
   if (!V) return;
   const z = V.zoom, surf = $('#surf', V.el);
   z.s = Math.max(1, Math.min(ZOOM_MAX, s));
-  // De foto blijft het scherm vullen: niet verder schuiven dan de rand.
-  z.tx = z.s === 1 ? 0 : Math.min(0, Math.max(V.w - V.w * z.s, tx));
-  z.ty = z.s === 1 ? 0 : Math.min(0, Math.max(V.h - V.h * z.s, ty));
+  // Ingezoomd mag de rand van de foto een stukje naar binnen schuiven, zodat je ook in de hoeken en
+  // onderaan vrij kunt tekenen (niet meer onder je duim of tegen de knoppen).
+  const r = ZOOM_SPEELRUIMTE;
+  z.tx = z.s === 1 ? 0 : Math.min(r, Math.max(V.w - V.w * z.s - r, tx));
+  z.ty = z.s === 1 ? 0 : Math.min(r, Math.max(V.h - V.h * z.s - r, ty));
   surf.style.transition = 'none'; surf.style.transformOrigin = '0 0';
   surf.style.transform = z.s === 1 ? '' : `translate(${z.tx}px, ${z.ty}px) scale(${z.s})`;
 }
@@ -1662,7 +1666,7 @@ const termWeergave = x => (x.aantal != null ? `${x.aantal}x ` : '') + x.naam;
 // ---------- Android-app (Capacitor) ----------
 // In de app draait deze pagina in een WebView. Spraak, Bluetooth en bestanden lopen daar via de
 // ingebouwde plug-ins; in de browser blijft alles zoals het was.
-const APP_VERSIE = '2026.10.24-3';
+const APP_VERSIE = '2026.10.24-4';
 const UPDATE_URL = 'https://buildcalc-pro.github.io/buildcalc/';
 const Native = window.Capacitor?.isNativePlatform?.() ? window.Capacitor : null;
 const plugins = {};
