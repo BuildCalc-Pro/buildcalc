@@ -166,6 +166,14 @@ button.ghost .i { width: 18px; height: 18px; }
 .surface { position: absolute; }
 .surface img { width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 .surface svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+/* vergrootglas bij het neerzetten van een lijnpunt */
+.loep { position: absolute; left: 12px; top: 12px; width: 136px; height: 136px; box-sizing: border-box; border-radius: 50%; overflow: hidden; border: 3px solid var(--gold);
+  box-shadow: 0 8px 22px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.4); background: #111; pointer-events: none; z-index: 3; opacity: 0; transform: scale(.85); transition: opacity .12s, transform .12s, left .18s ease; }
+.loep.aan { opacity: 1; transform: scale(1); }
+.loep .li { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.loep .li img { width: 100%; height: 100%; display: block; }
+.loep .li svg, .loep .kruis { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.loep .lmaat { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(0,0,0,.7); color: var(--gold); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 9px; white-space: nowrap; }
 .navarrow { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; background: rgba(0,0,0,.45); color: #fff; display: grid; place-items: center; z-index: 2; }
 .navarrow.l { left: 0; border-radius: 0 8px 8px 0; } .navarrow.r { right: 0; border-radius: 8px 0 0 8px; }
 .vbottom { flex: none; background: var(--surface); padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 10px); }
@@ -174,6 +182,27 @@ button.ghost .i { width: 18px; height: 18px; }
 .status.sel .st { flex: 1; }
 .vspraak { position: absolute; left: 12px; right: 12px; top: 64px; z-index: 3; font-size: 13px; color: #fff; background: rgba(0,0,0,.6); border-radius: 8px; padding: 6px 10px; pointer-events: none; }
 .vspraak:empty { display: none; }
+table.form { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 6px; }
+table.form th { color: var(--gold); font-weight: 600; font-size: 10.5px; text-align: left; padding: 3px 2px; border-bottom: 1px solid var(--gold-dark); white-space: nowrap; }
+table.form td { padding: 4px 2px; vertical-align: top; border-bottom: 1px dashed var(--muted); }
+table.form .r { text-align: right; font-variant-numeric: tabular-nums; }
+table.form td.open { color: var(--open); font-weight: 700; }
+.meetstaat { padding: 10px 12px; }
+.meetstaat .gevel { font-weight: 700; margin: 14px 0 2px; }
+.meetstaat .gevel:first-child { margin-top: 0; }
+.meetstaat .gevel span { color: var(--muted); font-weight: 400; margin-left: 6px; }
+table.form td.oms { font-size: 11px; line-height: 1.3; }
+table.form td.code { font-weight: 700; white-space: nowrap; }
+.vspraak table.form td { border-color: rgba(255,255,255,.3); color: #fff; }
+.notform { display: block; width: 100%; text-align: left; background: var(--surface); border-radius: 12px; padding: 10px 12px; margin-top: 8px; color: var(--text); }
+.notform i { color: var(--muted); font-size: 12px; display: block; }
+.notform b { color: var(--gold); font-size: 15px; display: block; margin-bottom: 2px; }
+.nkop2 { display: flex; gap: 10px; align-items: center; }
+.nfoto { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; flex: none; background: var(--surface-high); }
+.ldot { width: 8px; height: 8px; border-radius: 50%; background: #616161; flex: none; margin: 0 6px; }
+.ldot.aan { background: var(--ok); } .ldot.bezig { background: var(--gold); animation: knipper 1s infinite; }
+@keyframes knipper { 50% { opacity: .3; } }
+.vmic { position: absolute; right: 16px; bottom: 16px; z-index: 3; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 .schakel { display: flex; align-items: center; gap: 10px; margin-top: 14px; font-size: 14px; }
 .schakel input { width: 20px; height: 20px; accent-color: #D4AF37; }
 .status.sel { height: auto; min-height: 48px; flex-direction: column; align-items: stretch; gap: 6px; }
@@ -369,23 +398,6 @@ function sluitPagina(opnieuw = true) {
   PAG.el.remove(); PAG = null;
   if (opnieuw) render();
 }
-// Knoppen bovenin een project of submap: Spraak, Lasermeter en Rapport.
-function actiesHtml() {
-  const v = Laser.status === 'verbonden';
-  return `<div class="acties"><button data-actie="spraak">${ic('mic')}Spraak</button>
-    <button data-actie="laser" class="${v ? 'aan' : ''}">${ic('bt')}${v ? 'Laser verbonden' : { zoeken: 'Zoeken…', verbinden: 'Verbinden…' }[Laser.status] || 'Lasermeter'}</button>
-    <button data-actie="rapport">${ic('pdf')}Rapport</button></div>`;
-}
-function koppelActies(m, p, s) {
-  $('[data-actie=spraak]', m).onclick = () => openPagina('spraak', p, s || p.submappen[0]);
-  $('[data-actie=rapport]', m).onclick = () => openPagina('rapport', p);
-  $('[data-actie=laser]', m).onclick = () => Laser.status === 'verbonden' ? Laser.verbreek() : (Laser.status === 'los' || Laser.status === 'fout') && Laser.verbind();
-  const bij = () => { const b = $('[data-actie=laser]', m); if (!b) { Laser.luisteraars.delete(bij); return; }
-    b.outerHTML = actiesHtml().match(/<button data-actie="laser"[\s\S]*?<\/button>/)[0]; koppelActies(m, p, s); Laser.luisteraars.delete(bij);
-    if (Laser.fout) toast(Laser.fout); };
-  Laser.luisteraars.add(bij);
-}
-
 // ---------- projectenlijst ----------
 function renderLijst(m) {
   const n = projecten.length;
@@ -421,12 +433,11 @@ function koppelAppStatus(el) {
 // ---------- Rapporten: overzicht van alle projecten met hun TopCalc-rapport ----------
 function renderRapporten(m) {
   const n = projecten.length;
-  const m1 = p => p.submappen.flatMap(s => s.fotos).reduce((a, f) => a + (kozijnMaten(f)?.totaal || 0), 0);
   m.innerHTML = `<div class="pad"><div class="label" style="margin-top:4px">RAPPORTEN (${n})</div>
-    ${n ? projecten.map(p => { const fotos = p.submappen.reduce((a, s) => a + s.fotos.length, 0), tot = m1(p);
+    ${n ? projecten.map(p => { const fotos = p.submappen.reduce((a, s) => a + s.fotos.length, 0);
       return `<div class="card rcard" data-rap="${p.id}" role="button"><span class="fi" style="color:var(--gold)">${ic('pdf')}</span><span class="txt">
         <div class="a">${esc(p.werknummer)} • ${esc(p.adres)}</div>
-        <div class="m">${fotos} ${fotos === 1 ? 'foto' : "foto's"}${tot ? ` • ${getalNL(tot, 2)} m1` : ''} • ${p.verstuurd ? `<span style="color:var(--ok)">Verstuurd ${datumNL(new Date(p.verstuurd))}</span>` : 'Nog niet verstuurd'}</div></span>
+        <div class="m">${fotos} ${fotos === 1 ? 'foto' : "foto's"} • ${p.verstuurd ? `<span style="color:var(--ok)">Verstuurd ${datumNL(new Date(p.verstuurd))}</span>` : 'Nog niet verstuurd'}</div></span>
         <button class="iconbtn" data-pdf="${p.id}" aria-label="PDF opslaan" style="color:var(--gold)">${ic('opslaan')}</button></div>`; }).join('')
       : `<div class="empty"><div class="big">${ic('pdf')}</div><h3>Nog geen rapporten</h3>Maak eerst een project aan bij Projecten.</div>`}</div>`;
   m.querySelectorAll('[data-rap]').forEach(k => k.onclick = e => { if (!e.target.closest('[data-pdf]')) openPagina('rapport', vind(k.dataset.rap)); });
@@ -486,7 +497,7 @@ function renderProject(m, p) {
   const n = p.submappen.length;
   m.innerHTML = `<div class="sub"><button class="iconbtn" id="terug" aria-label="Terug">${ic('back')}</button>
       <div class="t"><b>${esc(p.adres)}</b></div><button class="iconbtn" id="pmenu" aria-label="Menu">${ic('more')}</button></div>
-    ${actiesHtml()}<div class="pad"><div class="card info">
+    <div class="pad"><div class="card info">
       <div class="row">${ic('pin')}<span class="l">Adres</span><span class="v">${esc(p.adres)}</span></div>
       <div class="row">${ic('hash')}<span class="l">Werknummer</span><span class="v">${esc(p.werknummer)}</span></div>
       <div class="row">${ic('user')}<span class="l">Klant</span><span class="v">${esc(p.klant)}</span></div></div>
@@ -498,7 +509,6 @@ function renderProject(m, p) {
             <button class="iconbtn more" data-opt="${s.id}" aria-label="Opties">${ic('more')}</button></div>`).join('') + '</div>'}
     </div><button class="fab" id="nieuwS">${ic('folderPlus')} Nieuwe submap</button>`;
   $('#terug').onclick = () => { stapel = []; render(); };
-  koppelActies(m, p);
   $('#pmenu').onclick = () => menu([['edit', 'Project wijzigen', () => projectForm(p)], ['opslaan', 'Back-up van dit project', () => backupMaken(p)],
     ['trash', 'Project verwijderen', async () => {
       if (!await bevestig('Project verwijderen?', `"${p.adres}" en alle submappen en foto's worden verwijderd.`)) return;
@@ -550,13 +560,20 @@ function renderSubmap(m, p, s) {
   m.innerHTML = `<div class="sub"><button class="iconbtn" id="terug" aria-label="Terug">${ic('back')}</button>
       <div class="t"><b>${esc(s.naam)}</b><small>${esc(p.adres)} • ${n} ${n === 1 ? 'foto' : 'foto\'s'}</small></div>
       <button class="iconbtn" id="gal" aria-label="Foto uit galerij">${ic('gallery')}</button></div>
-    ${actiesHtml()}
     ${n === 0 ? `<div class="ph">${ic('gallery', 'i big')}<h3>Nog geen foto's in deze submap</h3><p>Tik op de gouden cameraknop om een foto te maken. Hij wordt direct in deze submap bewaard.</p></div>`
-      : '<div class="grid3">' + s.fotos.map((f, i) => `<button class="thumb" data-i="${i}"><img data-foto="${f.id}" alt="">${f.lijnen.length ? `<span class="badge">${f.lijnen.length} ${f.lijnen.length === 1 ? 'lijn' : 'lijnen'}</span>` : ''}</button>`).join('') + '</div>'}
+      : `<div class="grid3" ${s.notities.length ? 'style="padding-bottom:12px"' : ''}>` + s.fotos.map((f, i) => `<button class="thumb" data-i="${i}"><img data-foto="${f.id}" alt="">${f.lijnen.length ? `<span class="badge">${f.lijnen.length} ${f.lijnen.length === 1 ? 'lijn' : 'lijnen'}</span>` : ''}</button>`).join('') + '</div>'}
+    ${s.notities.length ? `<div class="pad" style="padding-top:0;padding-bottom:120px"><div class="label">NOTITIES (${s.notities.length})</div>${s.notities.map(n =>
+      { const lab = notitieLabel(n.tekst), fi = s.fotos.findIndex(f => f.id === n.fotoId);
+        return `<div class="notform" data-not="${n.id}" role="button"><div class="nkop2">${fi >= 0 ? `<img class="nfoto" data-foto="${n.fotoId}" data-open="${fi}" alt="">` : ''}
+          <div>${lab ? `<b>${esc(lab)}</b>` : ''}<i>"${esc(n.tekst)}"</i></div></div>${formTabelHtml(formRegels(n, s))}</div>`; }).join('')}</div>` : ''}
     <button class="camfab" id="cam" aria-label="Foto maken">${ic('camera')}</button>`;
-  m.querySelectorAll('img[data-foto]').forEach(async img => { const u = await fotoUrl(img.dataset.foto); if (u) img.src = u; else img.replaceWith(Object.assign(document.createElement('span'), { className: 'weg', textContent: 'Foto ontbreekt' })); });
+  m.querySelectorAll('img[data-foto]').forEach(async img => { const u = await fotoUrl(img.dataset.foto); if (u) img.src = u; else if (img.classList.contains('nfoto')) img.remove(); else img.replaceWith(Object.assign(document.createElement('span'), { className: 'weg', textContent: 'Foto ontbreekt' })); });
   $('#terug').onclick = () => { stapel = [p.id]; render(); };
-  koppelActies(m, p, s);
+  m.querySelectorAll('[data-not]').forEach(b => b.onclick = e => {
+    const open = e.target.closest('[data-open]');
+    if (open) return openViewer(p, s, +open.dataset.open); // fotootje: naar de foto van deze notitie
+    wijzigNotitie(s, s.notities.find(n => n.id === b.dataset.not));
+  });
   $('#cam').onclick = () => { $('#camIn').value = ''; $('#camIn').click(); };
   $('#gal').onclick = () => { $('#galIn').value = ''; $('#galIn').click(); };
   m.querySelectorAll('[data-i]').forEach(b => b.onclick = () => openViewer(p, s, +b.dataset.i));
@@ -675,30 +692,82 @@ let V = null; // { p, s, i, modus, sel, el, maat, nieuw, greep }
 function openViewer(p, s, i) {
   const el = document.createElement('div'); el.className = 'viewer';
   el.innerHTML = `<div class="vbar"><button class="iconbtn" id="vsluit" aria-label="Sluiten">${ic('close')}</button>
-      <div class="t" id="vtitel"></div><button class="iconbtn" id="vlaser" aria-label="Lasermeter">${ic('bt')}</button><button class="iconbtn" id="vnotitie" aria-label="Spraak met Gemini">${ic('ster')}</button><button class="iconbtn" id="vmic" aria-label="Kozijn inspreken">${ic('mic')}</button><button class="iconbtn" id="vweg" aria-label="Foto verwijderen">${ic('trash')}</button></div>
-    <div class="vspraak" id="vspraak"></div>
+      <div class="t" id="vtitel"></div><i class="ldot" id="vldot" title="Lasermeter"></i><button class="iconbtn" id="vweg" aria-label="Foto verwijderen">${ic('trash')}</button></div>
     <div class="stage" id="stage"><div class="surface" id="surf"><img id="vimg" alt=""><svg id="vsvg"></svg></div>
+      <div class="loep" id="vloep"><div class="li"><img alt=""><svg></svg></div><svg class="kruis" viewBox="0 0 100 100">
+        <g stroke="rgba(0,0,0,.55)" stroke-width="3.2" stroke-linecap="round"><path d="M50 26V43M50 57V74M26 50H43M57 50H74"/></g>
+        <g stroke="#fff" stroke-width="1.4" stroke-linecap="round"><path d="M50 26V43M50 57V74M26 50H43M57 50H74"/></g>
+        <circle cx="50" cy="50" r="2.2" fill="#D4AF37" stroke="#000" stroke-width=".6"/></svg><div class="lmaat" hidden></div></div>
       <button class="navarrow l" id="vprev" aria-label="Vorige foto">${ic('left')}</button>
-      <button class="navarrow r" id="vnext" aria-label="Volgende foto">${ic('right')}</button><span class="weg" id="vweg2" hidden>Foto ontbreekt</span></div>
+      <button class="navarrow r" id="vnext" aria-label="Volgende foto">${ic('right')}</button><span class="weg" id="vweg2" hidden>Foto ontbreekt</span>
+      <div class="vspraak" id="vspraak"></div><button class="mic vmic" id="vmic" aria-label="Inspreken">${ic('mic')}</button></div>
     <div class="vbottom"><div class="status" id="vstatus"></div><div class="modes" id="vmodes">
       <button data-m="bekijken">${ic('hand')}Bekijken</button><button data-m="horizontaal">${ic('horiz')}Horizontaal</button>
       <button data-m="verticaal">${ic('vert')}Verticaal</button><button data-m="opmerking">${ic('ballon')}Opmerking</button></div></div>`;
   document.body.appendChild(el);
-  V = { p, s, i, modus: 'bekijken', sel: null, el };
+  V = { p, s, i, modus: 'bekijken', sel: null, el, zoom: { s: 1, tx: 0, ty: 0 } };
   Laser.opMeting = laserOpLijn;
   $('#vsluit', el).onclick = sluitViewer;
-  $('#vnotitie', el).onclick = () => openPagina('spraak', V.p, V.s);
-  const vlaser = $('#vlaser', el), laserKleur = () => { if (!vlaser.isConnected) { Laser.luisteraars.delete(laserKleur); return; }
-    vlaser.style.color = Laser.status === 'verbonden' ? 'var(--ok)' : Laser.status === 'fout' ? 'var(--danger)' : ''; };
-  Laser.luisteraars.add(laserKleur); laserKleur();
-  vlaser.onclick = () => Laser.status === 'verbonden' ? Laser.verbreek() : (Laser.status === 'los' || Laser.status === 'fout') && Laser.verbind();
-  // Spraak in de viewer hoort altijd bij het actieve kozijn: de foto die open staat.
-  koppelMic($('#vmic', el), $('#vspraak', el), '', tekst => {
+  // Spraak bij deze foto: maten vullen direct de lijnen van dit kozijn, en de zin wordt een notitie
+  // in deze submap die Gemini daarna duidt (Topcalc-code).
+  const vs = $('#vspraak', el);
+  koppelMic($('#vmic', el), vs, '', (ruw, klaar = true) => {
     if (!V) return;
-    const r = kozijnSpraak(foto(), tekst, V.s.naam);
-    $('#vspraak', el).textContent = r.length ? `"${tekst}" → ${r.join(', ')}` : `Niets herkend in "${tekst}".`;
-    if (r.length) { bewaar(); tekenUI(); }
+    if (!klaar) { vs.textContent = `"${ruw}"…`; return; } // tussentekst alleen tonen, nog niets invullen
+    // Met een letter ("kozijn A ...") horen de maten bij dat kozijn: ze komen bij de letter, niet op de maatlijnen van de foto.
+    const [tekst] = verbeter(ruw), f = foto(), delen = notitieDelen(tekst);
+    // "Kozijn A heeft nog 3 extra stijlen van 80 cm": een aanvulling op kozijn A dat al op deze foto staat.
+    // Niets nieuws tekenen; de zin gaat bij de notitie van A en telt mee in notities, overzicht en rapport.
+    const al = delen.letter && (f.labels || []).find(l => l.tekst === delen.letter), hm = herken(zonderExtra(tekst));
+    const oudN = al && V.s.notities.find(x => x.id === al.id);
+    if (oudN && hm.breedte == null && hm.hoogte == null) {
+      oudN.tekst = `${oudN.tekst}, ${tekst}`; oudN.aiTekst = null; al.notitie = oudN.tekst; bewaar(); tekenUI();
+      const k = kozijnMaten(f, al.tekst);
+      vs.dataset.n = oudN.id;
+      vs.innerHTML = `<b style="color:var(--gold)">${esc(notitieLabel(oudN.tekst))}</b><div>"${esc(tekst)}" <small style="color:var(--gold)">toegevoegd${k ? ` • totaal ${getalNL(k.totaal)} m1` : ''}</small></div>${formTabelHtml(formRegels(oudN, V.s))}`;
+      setTimeout(() => { if (vs.dataset.n === oudN.id) { vs.textContent = ''; delete vs.dataset.n; } }, 12000);
+      aiBijwerken();
+      return;
+    }
+    const r = delen.letter ? [] : kozijnSpraak(f, tekst, V.s.naam);
+    const n = { id: nieuwId(), tekst, fotoId: f.id, gemaakt: new Date().toISOString() };
+    V.s.notities = V.s.notities || []; V.s.notities.unshift(n);
+    // "kozijn A links boven": een kleine A op die plek van de foto; dezelfde letter opnieuw inspreken verplaatst hem.
+    if (delen.letter) {
+      f.labels = (f.labels || []).filter(l => l.tekst !== delen.letter);
+      // Eigen maatlijnen voor dit kozijn (breedte eronder, hoogte links), eerst op de ruwe plek;
+      // Gemini zoekt daarna het kozijn op de foto en legt de lijnen er precies langs.
+      const label = { id: n.id, tekst: delen.letter, notitie: tekst, ...labelPlek(delen.waar) };
+      f.labels.push(label);
+      const p0 = postenVoorNotitie(tekst, '')[0] || {}, m0 = herken(zonderExtra(tekst));
+      const maten = { b: p0.breedte ?? m0.breedte, h: p0.hoogte ?? m0.hoogte };
+      kozijnLijnen(f, label, ruwKader(label), maten);
+      geminiZoekKozijn(f, label, delen).then(kader => {
+        if (!kader || !(f.labels || []).includes(label)) return;
+        kozijnLijnen(f, label, kader, maten); bewaar();
+        if (V && foto() === f) tekenUI();
+      });
+    }
+    bewaar();
+    if (r.length || delen.letter) tekenUI();
+    // Uitslag als regel van het Topcalc-formulier; na het antwoord van Gemini nog eens bijgewerkt.
+    const locatie = V.s.naam, toon = extra => { if (vs.isConnected && vs.dataset.n === n.id)
+      vs.innerHTML = `${notitieLabel(tekst) ? `<b style="color:var(--gold)">${esc(notitieLabel(tekst))}</b>` : ''}<div>"${esc(tekst)}"${extra ? ` <small style="color:var(--gold)">${esc(extra)}</small>` : ''}</div>${formTabelHtml(formRegels(n, V?.s || locatie))}`; };
+    vs.dataset.n = n.id; toon(aiSleutel() ? 'Gemini denkt…' : '');
+    // Na een poosje verdwijnt de uitslag weer van de foto; hij staat bij de notities.
+    const weg = () => setTimeout(() => { if (vs.dataset.n === n.id) { vs.textContent = ''; delete vs.dataset.n; } }, 12000);
+    if (aiSleutel()) aiBijwerken().then(() => { toon(n.aiTekst === n.tekst ? 'Gemini' : `Gemini: ${AI.fout || 'geen antwoord'}`); weg(); }); else weg();
   });
+  // De lasermeter verbindt vanzelf zodra je een foto opent; een melding als hij verbonden is.
+  let laserWas = Laser.status;
+  const dot = $('#vldot', el);
+  const laserMeld = () => { if (!el.isConnected) { Laser.luisteraars.delete(laserMeld); return; }
+    // Klein bolletje bovenin: grijs = niet verbonden, goud knipperend = zoeken, groen = verbonden.
+    dot.className = 'ldot' + (Laser.status === 'verbonden' ? ' aan' : /zoeken|verbinden/.test(Laser.status) ? ' bezig' : '');
+    if (Laser.status === 'verbonden' && laserWas !== 'verbonden') toast(`${Laser.naam || 'Lasermeter'} verbonden. Druk op de meetknop van de meter.`);
+    laserWas = Laser.status; };
+  Laser.luisteraars.add(laserMeld);
+  Laser.auto(); laserMeld();
   $('#vprev', el).onclick = () => naarFoto(V.i - 1);
   $('#vnext', el).onclick = () => naarFoto(V.i + 1);
   $('#vweg', el).onclick = async () => {
@@ -710,6 +779,7 @@ function openViewer(p, s, i) {
   el.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { V.modus = b.dataset.m; V.sel = null; tekenUI(); });
   koppelGebaren($('#surf', el));
   koppelVegen($('#stage', el));
+  koppelZoom($('#stage', el));
   window.addEventListener('resize', schik);
   naarFoto(i);
 }
@@ -735,7 +805,7 @@ function laserOpLijn(m) {
   V.sel = volgende?.id ?? null; tekenUI();
   toast(`${formatMeter(m)} opgeslagen` + (volgende ? `. Nu de ${volgende.richting === 'horizontaal' ? 'horizontale' : 'verticale'} lijn` : '. Alle lijnen op deze foto zijn gemeten'));
 }
-function sluitViewer() { Spraak.stop(); Laser.opMeting = null; window.removeEventListener('resize', schik); V?.el.remove(); V = null; render(); }
+function sluitViewer() { try { Spraak.stop(); } catch (e) { console.warn(e); } Laser.opMeting = null; window.removeEventListener('resize', schik); V?.el.remove(); V = null; render(); }
 async function naarFoto(i) {
   if (!V || i < 0 || i >= V.s.fotos.length) return;
   V.i = i; V.sel = null; V.maat = null; V.w = 0;
@@ -755,7 +825,7 @@ function schik() {
   const k = Math.min(st.width / V.maat.w, st.height / V.maat.h);
   const w = V.maat.w * k, h = V.maat.h * k, surf = $('#surf', V.el);
   Object.assign(surf.style, { width: w + 'px', height: h + 'px', left: (st.width - w) / 2 + 'px', top: (st.height - h) / 2 + 'px' });
-  V.w = w; V.h = h; tekenLijnen();
+  V.w = w; V.h = h; zetZoom(1); tekenLijnen();
 }
 const foto = () => V.s.fotos[V.i];
 function tekenUI() {
@@ -795,7 +865,8 @@ const maatLabel = m => m == null ? '?' : `${String(Math.round(m * 1000) / 10).re
 // Vermenigvuldiger voor tussenstijlen (verticaal) en tussendorpels (horizontaal), zonder extra lijnen.
 // Standaard 0: de meeste kozijnen hebben geen tussenstijlen; zelf ophogen met +.
 const lijnAantal = l => l.aantal ?? 0;
-const lijnLabel = l => maatLabel(l.maat) + (lijnAantal(l) >= 1 ? ` (x${lijnAantal(l)})` : '');
+// Bij een kozijn met letter staat de letter voor de maat ("A 120 cm"), zodat je ziet welke lijn bij welk kozijn hoort.
+const lijnLabel = l => (l.kozijn ? l.kozijn + ' ' : '') + maatLabel(l.maat) + (lijnAantal(l) >= 1 ? ` (x${lijnAantal(l)})` : '');
 // "4 stijlen", "vier stijlen", "2 tussendorpels" uit een ingesproken of getypte tekst.
 function splitsAantal(tekst) {
   const woorden = { een: 1, 'één': 1, twee: 2, drie: 3, vier: 4, vijf: 5, zes: 6, zeven: 7, acht: 8, negen: 9, tien: 10 };
@@ -805,10 +876,34 @@ function splitsAantal(tekst) {
 }
 // ---------- TopCalc-type per kozijn (foto) ----------
 // Het type staat op de foto (f.type) en verschijnt als gouden label boven het kozijn.
+// Kleine letter op het kozijn met zijn eigen maten (f.labels = [{ id: notitie-id, tekst, maat, x, y }]).
+// Elk kozijn op een foto kan andere maten hebben: "A 1,20 × 1,30", "B 1,60 × 1,20".
+function labelMaat(tekst) {
+  const p = postenVoorNotitie(tekst, '')[0] || {}, m = herken(tekst);
+  const b = p.breedte ?? m.breedte, h = p.hoogte ?? m.hoogte, l = p.lengte ?? m.lengte;
+  return b != null && h != null ? `${getalNL(b)} × ${getalNL(h)}` : l != null ? `${getalNL(l)} m` : b != null ? getalNL(b) : '';
+}
+const labelTekst = l => l.maat ? `${l.tekst}  ${l.maat}` : l.tekst;
+function labelsSvg(f, W, H) {
+  return (f.labels || []).map(l => {
+    const t = labelTekst(l), bw = l.maat ? t.length * 6 + 12 : 16, x = l.x * W - bw / 2, y = l.y * H - 8;
+    return `<g class="flabel"><rect x="${x}" y="${y}" width="${bw}" height="16" rx="8" fill="rgba(0,0,0,.55)" stroke="#D4AF37" stroke-width="1"/>
+      <text x="${l.x * W}" y="${l.y * H + 3.5}" text-anchor="middle" font-size="10" font-weight="700" fill="#D4AF37">${esc(t)}</text></g>`; }).join('');
+}
+function canvasLabel(g, l, W, H, s) {
+  const t = labelTekst(l), x = l.x * W, y = l.y * H, h = 16 * s;
+  g.font = `700 ${10 * s}px sans-serif`;
+  const bw = l.maat ? g.measureText(t).width + 14 * s : h, x0 = x - bw / 2, y0 = y - h / 2, r = h / 2;
+  g.beginPath(); g.moveTo(x0 + r, y0); g.arcTo(x0 + bw, y0, x0 + bw, y0 + h, r); g.arcTo(x0 + bw, y0 + h, x0, y0 + h, r); g.arcTo(x0, y0 + h, x0, y0, r); g.arcTo(x0, y0, x0 + bw, y0, r); g.closePath();
+  g.fillStyle = 'rgba(0,0,0,.55)'; g.fill(); g.lineWidth = 1 * s; g.strokeStyle = '#D4AF37'; g.stroke();
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#D4AF37'; g.fillText(t, x, y + s);
+}
+const labelOp = (x, y) => (foto().labels || []).slice().reverse().find(l => { const bw = l.maat ? labelTekst(l).length * 6.4 + 14 : 18;
+  return Math.abs(x - l.x * V.w) < bw / 2 + 8 && Math.abs(y - l.y * V.h) < 18; });
 function typeChip(f, W, H) {
   if (!f.type || !f.lijnen.length) return '';
   const xs = f.lijnen.flatMap(l => [l.x1 * W, l.x2 * W]), ys = f.lijnen.flatMap(l => [l.y1 * H, l.y2 * H]);
-  const t = `${f.type.code} · ${f.type.naam}`, bw = t.length * 7 + 16;
+  const t = `${f.type.code} · ${f.type.naam}`.toUpperCase(), bw = t.length * 7.6 + 16;
   const x = Math.max(4, Math.min(W - bw - 4, (Math.min(...xs) + Math.max(...xs)) / 2 - bw / 2)), y = Math.max(4, Math.min(...ys) - 34);
   return `<g class="typechip"><rect x="${x}" y="${y}" width="${bw}" height="24" rx="12" fill="#D4AF37"/><text x="${x + bw / 2}" y="${y + 16.5}" text-anchor="middle" font-size="12.5" font-weight="700" fill="#121212">${esc(t)}</text></g>`;
 }
@@ -947,7 +1042,7 @@ function spraakMaat(v, eenheid) {
 }
 const DEFAULT_LIJN = { horizontaal: [0.15, 0.9, 0.85, 0.9], verticaal: [0.08, 0.12, 0.08, 0.85] };
 function basisLijn(f, richting) {
-  let l = f.lijnen.find(x => x.richting === richting);
+  let l = f.lijnen.find(x => x.richting === richting && !x.kozijn);
   if (!l) { const [x1, y1, x2, y2] = DEFAULT_LIJN[richting]; l = { id: nieuwId(), richting, x1, y1, x2, y2 }; f.lijnen.push(l); }
   return l;
 }
@@ -962,10 +1057,19 @@ function kozijnSpraak(f, tekst, locatie) {
   if (bij && !/^\s*(stijl|dorpel)/i.test(rest.slice(bij.index + bij[0].length))) {
     zet('horizontaal', bij[1], bij[2] || bij[4]); zet('verticaal', bij[3], bij[4] || bij[2]); rest = rest.replace(bij[0], ' ');
   }
-  for (const [woord, richting] of [['breedte|breed', 'horizontaal'], ['hoogte|hoog', 'verticaal']]) {
-    const m = rest.match(new RegExp(`\\b(?:${woord})\\s*(?:is|van)?\\s*(\\d+(?:[.,]\\d+)?)\\s*${E}(?![a-z])`, 'i'));
-    if (m) { zet(richting, m[1], m[2]); rest = rest.replace(m[0], ' '); }
-  }
+  // "93 cm breed en 208 hoog" (getal eerst) of "breedte 93, hoogte 208" (woord eerst); de vorm die het eerst in de zin staat gaat voor.
+  const WOORD = { horizontaal: 'breedte|breed', verticaal: 'hoogte|hoog' }, G = '(\\d+(?:[.,]\\d+)?)';
+  const vormen = {
+    getal: r => new RegExp(`(?<![\\d,.])${G}\\s*${E}\\s*(?:${WOORD[r]})(?![a-z])`, 'i'),
+    woord: r => new RegExp(`\\b(?:${WOORD[r]})\\s*(?:is|van)?\\s*${G}\\s*${E}(?![a-z])`, 'i'),
+  };
+  const eerst = v => Math.min(...['horizontaal', 'verticaal'].map(r => { const i = rest.search(vormen[v](r)); return i < 0 ? Infinity : i; }));
+  for (const v of eerst('getal') < eerst('woord') ? ['getal', 'woord'] : ['woord', 'getal'])
+    for (const richting of ['horizontaal', 'verticaal']) {
+      if (gedaan.some(g => g.startsWith(richting === 'horizontaal' ? 'breedte' : 'hoogte'))) continue;
+      const m = rest.match(vormen[v](richting));
+      if (m) { zet(richting, m[1], m[2]); rest = rest.replace(m[0], ' '); }
+    }
   const { aantal, rest: zonder } = splitsAantal(rest);
   if (aantal != null) {
     const dorpel = /dorpel/i.test(rest) && !/stijl/i.test(rest);
@@ -979,10 +1083,10 @@ function kozijnSpraak(f, tekst, locatie) {
 // tw = breedte van de tekst, s = schaal (1 op het scherm).
 function pijlVorm(x1, y1, x2, y2, tw, s = 1) {
   const len = Math.hypot(x2 - x1, y2 - y1) || 1, ux = (x2 - x1) / len, uy = (y2 - y1) / len;
-  const A = Math.min(13 * s, len / 3), B = A * 0.5;
+  const A = Math.min(8 * s, len / 3), B = A * 0.38; // kleine, slanke pijlpunten
   const kop = (x, y, r) => [[x, y], [x - r * ux * A - uy * B, y - r * uy * A + ux * B], [x - r * ux * A + uy * B, y - r * uy * A - ux * B]];
   const b1 = [x1 + ux * A * 0.8, y1 + uy * A * 0.8], b2 = [x2 - ux * A * 0.8, y2 - uy * A * 0.8];
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, gat = tw + 12 * s;
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, gat = tw + 8 * s;
   // Tekst altijd leesbaar: van links naar rechts, of van onder naar boven.
   let hoek = Math.atan2(uy, ux) * 180 / Math.PI;
   if (hoek >= 90) hoek -= 180; else if (hoek < -90) hoek += 180;
@@ -991,36 +1095,37 @@ function pijlVorm(x1, y1, x2, y2, tw, s = 1) {
   if (binnen) stukken = [[...b1, mx - ux * gat / 2, my - uy * gat / 2], [mx + ux * gat / 2, my + uy * gat / 2, ...b2]];
   else { // te kort: tekst naast de lijn, aan de boven- of linkerkant
     let px = uy, py = -ux; if (py > 0 || (py === 0 && px > 0)) { px = -px; py = -py; }
-    tx += px * 13 * s; ty += py * 13 * s;
+    tx += px * 10 * s; ty += py * 10 * s;
   }
   return { stukken, koppen: [kop(x2, y2, 1), kop(x1, y1, -1)], tx, ty, hoek };
 }
-const PIJL_RAND = 'rgba(0,0,0,.65)';
+// Strakke maatlijnen: dunne lijn met een zachte donkere rand (leesbaar op elke foto), kleine pijlpunten en tekst.
+const PIJL_RAND = 'rgba(0,0,0,.45)';
 function svgPijl(x1, y1, x2, y2, label, kl) {
-  const v = pijlVorm(x1, y1, x2, y2, label.length * 8.3 + 2);
+  const v = pijlVorm(x1, y1, x2, y2, label.length * 6.3 + 2);
   if (label === '?') v.hoek = 0;
   const d = v.stukken.map(([a, b, c, e]) => `M${a} ${b}L${c} ${e}`).join('');
   const pk = v.koppen.map(k => `<polygon points="${k.map(p => p.join(',')).join(' ')}"`);
-  return `<path d="${d}" stroke="${PIJL_RAND}" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-    ${pk.map(p => `${p} fill="${PIJL_RAND}" stroke="${PIJL_RAND}" stroke-width="3.5" stroke-linejoin="round"/>`).join('')}
-    <path d="${d}" stroke="${kl}" stroke-width="2.4" stroke-linecap="round" fill="none"/>
+  return `<path d="${d}" stroke="${PIJL_RAND}" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    ${pk.map(p => `${p} fill="${PIJL_RAND}" stroke="${PIJL_RAND}" stroke-width="1.6" stroke-linejoin="round"/>`).join('')}
+    <path d="${d}" stroke="${kl}" stroke-width="1.2" stroke-linecap="round" fill="none"/>
     ${pk.map(p => `${p} fill="${kl}"/>`).join('')}
-    <text transform="translate(${v.tx} ${v.ty}) rotate(${v.hoek})" text-anchor="middle" dominant-baseline="central" font-size="15" font-weight="700" fill="${kl}" stroke="${PIJL_RAND}" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke">${label}</text>`;
+    <text transform="translate(${v.tx} ${v.ty}) rotate(${v.hoek})" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="600" letter-spacing=".2" fill="${kl}" stroke="${PIJL_RAND}" stroke-width="2.4" stroke-linejoin="round" paint-order="stroke">${label}</text>`;
 }
 function canvasPijl(g, x1, y1, x2, y2, label, kl, s) {
-  g.font = `bold ${16 * s}px Helvetica, Arial, sans-serif`;
+  g.font = `600 ${11.5 * s}px Helvetica, Arial, sans-serif`;
   const v = pijlVorm(x1, y1, x2, y2, g.measureText(label).width, s);
   if (label === '?') v.hoek = 0;
   g.lineCap = 'round'; g.lineJoin = 'round';
-  for (const [kleur, d] of [[PIJL_RAND, 5.5 * s], [kl, 2.4 * s]]) {
+  for (const [kleur, d] of [[PIJL_RAND, 2.8 * s], [kl, 1.2 * s]]) {
     g.strokeStyle = kleur; g.fillStyle = kleur; g.lineWidth = d;
     g.beginPath(); for (const [a, b, c, e] of v.stukken) { g.moveTo(a, b); g.lineTo(c, e); } g.stroke();
-    g.lineWidth = kleur === kl ? 0 : 3.5 * s;
+    g.lineWidth = kleur === kl ? 0 : 1.6 * s;
     for (const k of v.koppen) { g.beginPath(); g.moveTo(...k[0]); g.lineTo(...k[1]); g.lineTo(...k[2]); g.closePath(); g.fill(); if (g.lineWidth) g.stroke(); }
   }
   g.save(); g.translate(v.tx, v.ty); g.rotate(v.hoek * Math.PI / 180);
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.strokeStyle = PIJL_RAND; g.lineWidth = 4 * s; g.strokeText(label, 0, 0);
+  g.strokeStyle = PIJL_RAND; g.lineWidth = 2.4 * s; g.strokeText(label, 0, 0);
   g.fillStyle = kl; g.fillText(label, 0, 0); g.restore();
 }
 // Slepen volgt de vinger (ook iets schuin), maar bijna recht wordt precies recht.
@@ -1038,15 +1143,103 @@ function tekenLijnen() {
     const kl = sel ? '#D4AF37' : maat == null ? '#FFA726' : '#FFFFFF';
     return svgPijl(x1, y1, x2, y2, label, kl) +
       (sel ? [[x1, y1], [x2, y2]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="12" fill="rgba(212,175,55,.25)" stroke="${kl}" stroke-width="2.5"/>`).join('') : '');
-  }).join('') + typeChip(foto(), W, H) + ballonnenSvg(foto(), W, H);
+  }).join('') + typeChip(foto(), W, H) + ballonnenSvg(foto(), W, H) + labelsSvg(foto(), W, H);
   // Alleen bij tekenen of een geselecteerde lijn vangen we het slepen af.
   const vrij = V.modus === 'bekijken' && !V.sel;
-  $('#surf', V.el).style.touchAction = vrij ? 'pan-y pinch-zoom' : 'none';
-  $('#stage', V.el).style.touchAction = vrij ? 'pan-y pinch-zoom' : 'none';
+  // Knijpen en schuiven doet de app zelf (inzoomen op de foto), dus de browser mag hier niets.
+  $('#surf', V.el).style.touchAction = 'none';
+  $('#stage', V.el).style.touchAction = 'none';
 }
 // Vegen naar de vorige of volgende foto, zoals in ImageMeter. Alleen bij Bekijken zonder geselecteerde lijn,
 // zodat het tekenen van lijnen er nooit last van heeft.
-const magVegen = () => V && V.modus === 'bekijken' && !V.sel && V.s.fotos.length > 1;
+const magVegen = () => V && V.modus === 'bekijken' && !V.sel && V.s.fotos.length > 1 && V.zoom.s === 1 && !V.knijp;
+// In- en uitzoomen op de foto: knijpen met twee vingers (in elke stand), met één vinger schuiven als je
+// bij Bekijken bent ingezoomd, en dubbeltikken om in of weer helemaal uit te zoomen. Lijnen tekenen kan ook ingezoomd.
+const ZOOM_MAX = 6;
+function zetZoom(s, tx = 0, ty = 0) {
+  if (!V) return;
+  const z = V.zoom, surf = $('#surf', V.el);
+  z.s = Math.max(1, Math.min(ZOOM_MAX, s));
+  // De foto blijft het scherm vullen: niet verder schuiven dan de rand.
+  z.tx = z.s === 1 ? 0 : Math.min(0, Math.max(V.w - V.w * z.s, tx));
+  z.ty = z.s === 1 ? 0 : Math.min(0, Math.max(V.h - V.h * z.s, ty));
+  surf.style.transition = 'none'; surf.style.transformOrigin = '0 0';
+  surf.style.transform = z.s === 1 ? '' : `translate(${z.tx}px, ${z.ty}px) scale(${z.s})`;
+}
+function koppelZoom(stage) {
+  const vingers = new Map();
+  let knijp = null, schuif = null, laatsteTik = null;
+  // Linkerbovenhoek van de foto op het scherm zonder zoom.
+  const basis = () => { const r = stage.getBoundingClientRect(), surf = $('#surf', V.el); return { x: r.left + parseFloat(surf.style.left || 0), y: r.top + parseFloat(surf.style.top || 0) }; };
+  const midden = () => { const [a, b] = [...vingers.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  stage.addEventListener('pointerdown', e => {
+    if (!V?.w || e.target.closest('.navarrow')) return;
+    vingers.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+    if (vingers.size === 2) {
+      // Tweede vinger: wat de eerste vinger deed (lijn tekenen, slepen) vervalt; nu wordt het knijpen.
+      V.knijp = true; V.nieuw = null; V.greep = null; V.label = null; V.ballon = null; schuif = null; verbergLoep();
+      const z = V.zoom, m = midden(), b = basis();
+      knijp = { s: z.s, d: m.d, cx: (m.x - b.x - z.tx) / z.s, cy: (m.y - b.y - z.ty) / z.s };
+      const s = $('#surf', V.el); if (s.style.transform.startsWith('translateX')) s.style.transform = '';
+      tekenLijnen();
+    } else if (vingers.size === 1 && V.zoom.s > 1 && V.modus === 'bekijken' && !V.sel && !labelOp(...surfPunt(e)) && !ballonOp(...surfPunt(e)) && !ballonPuntOp(...surfPunt(e)))
+      schuif = { x: e.clientX, y: e.clientY, tx: V.zoom.tx, ty: V.zoom.ty };
+  }, true);
+  stage.addEventListener('pointermove', e => {
+    const v = vingers.get(e.pointerId); if (!v || !V) return;
+    v.x = e.clientX; v.y = e.clientY;
+    if (knijp && vingers.size >= 2) {
+      const m = midden(), b = basis(), s = Math.max(1, Math.min(ZOOM_MAX, knijp.s * m.d / knijp.d));
+      zetZoom(s, m.x - b.x - knijp.cx * s, m.y - b.y - knijp.cy * s);
+    } else if (schuif) zetZoom(V.zoom.s, schuif.tx + e.clientX - schuif.x, schuif.ty + e.clientY - schuif.y);
+  }, true);
+  const los = e => {
+    const v = vingers.get(e.pointerId); if (!v) return;
+    vingers.delete(e.pointerId);
+    const getikt = !V.knijp && Math.hypot(v.x - v.x0, v.y - v.y0) < 10;
+    if (vingers.size < 2) knijp = null;
+    if (!vingers.size) {
+      schuif = null;
+      // Pas na de andere handlers loslaten, zodat het einde van een knijpgebaar geen tik of lijn wordt.
+      setTimeout(() => { if (V) V.knijp = false; }, 0);
+      // Dubbeltik: inzoomen op die plek, of als je al bent ingezoomd weer passend maken.
+      if (getikt && e.type === 'pointerup' && V.modus === 'bekijken') {
+        const nu = Date.now();
+        if (laatsteTik && nu - laatsteTik.t < 320 && Math.hypot(e.clientX - laatsteTik.x, e.clientY - laatsteTik.y) < 40) {
+          laatsteTik = null;
+          if (V.zoom.s > 1) zetZoom(1);
+          else { const b = basis(), s = 2.5; zetZoom(s, (e.clientX - b.x) * (1 - s), (e.clientY - b.y) * (1 - s)); }
+        } else laatsteTik = { t: nu, x: e.clientX, y: e.clientY };
+      }
+    }
+  };
+  stage.addEventListener('pointerup', los, true);
+  stage.addEventListener('pointercancel', los, true);
+}
+// Vergrootglas zoals in ImageMeter: bij het tekenen van een lijn of het verslepen van een uiteinde zie je
+// het stukje foto onder je vinger vergroot, met een kruisje precies op het punt. Het rondje staat linksboven
+// en wijkt naar rechtsboven uit als je vinger daar in de buurt komt.
+const LOEP = 136, LOEP_VERGROTING = 2.5;
+function toonLoep(px, py, ax, ay, e, label = '') {
+  const l = $('#vloep', V.el), st = $('#stage', V.el).getBoundingClientRect(), bron = $('#vimg', V.el);
+  if (!l || !bron.src) return;
+  const li = l.firstElementChild, img = li.firstElementChild, binnen = LOEP - 6;
+  if (img.getAttribute('src') !== bron.src) img.src = bron.src;
+  const Z = Math.min(10, (V.zoom?.s || 1) * LOEP_VERGROTING);
+  Object.assign(li.style, { width: V.w + 'px', height: V.h + 'px', transform: `translate(${binnen / 2 - px * Z}px, ${binnen / 2 - py * Z}px) scale(${Z})` });
+  // De lijn zelf dun in het rondje, zodat hij de rand van het kozijn niet bedekt.
+  li.lastElementChild.innerHTML = ax == null ? '' : `<line x1="${ax}" y1="${ay}" x2="${px}" y2="${py}" stroke="#D4AF37" stroke-width="2" vector-effect="non-scaling-stroke" stroke-dasharray="6 4"/>`;
+  const fx = e.clientX - st.left, fy = e.clientY - st.top, rechts = fx < LOEP + 60 && fy < LOEP + 60;
+  l.style.left = (rechts ? st.width - LOEP - 12 : 12) + 'px';
+  const m = $('.lmaat', l); m.hidden = !label; m.textContent = label;
+  l.classList.add('aan');
+}
+const verbergLoep = () => { const l = V && $('#vloep', V.el); if (l) l.classList.remove('aan'); };
+// Schermpunt naar een punt op de (niet-ingezoomde) foto, in dezelfde maat als V.w en V.h.
+function surfPunt(e) {
+  const r = $('#surf', V.el).getBoundingClientRect(), s = V.zoom?.s || 1;
+  return [Math.max(0, Math.min(V.w, (e.clientX - r.left) / s)), Math.max(0, Math.min(V.h, (e.clientY - r.top) / s))];
+}
 function koppelVegen(stage) {
   let start = null;
   const surf = () => $('#surf', V.el);
@@ -1075,7 +1268,8 @@ function koppelVegen(stage) {
 function mailTekst(p) {
   const regels = [`Opname ${p.werknummer}, ${p.adres}${p.klant ? ` (${p.klant})` : ''}`, ''];
   for (const sm of p.submappen) {
-    const rijen = sm.fotos.map((f, fi) => [fi, kozijnMaten(f), f]).filter(([, k, f]) => k || f.type || (f.opmerkingen || []).some(b => b.tekst));
+    const rijen = sm.fotos.flatMap((f, fi) => (kozijnenVan(f).length ? kozijnenVan(f) : [null]).map((L, j) => [L ? `${fi + 1} ${L}` : fi + 1, kozijnMaten(f, L), j ? { ...f, opmerkingen: [] } : f]))
+      .filter(([, k, f]) => k || f.type || (f.opmerkingen || []).some(b => b.tekst));
     if (!rijen.length) continue;
     let som = 0;
     regels.push(sm.naam);
@@ -1113,12 +1307,15 @@ function afstandTotLijn(px, py, x1, y1, x2, y2) {
 }
 function koppelGebaren(surf) {
   let start = null, bewogen = false;
-  const pos = e => { const r = surf.getBoundingClientRect();
-    return [Math.max(0, Math.min(V.w, e.clientX - r.left)), Math.max(0, Math.min(V.h, e.clientY - r.top))]; };
+  const pos = surfPunt;
   surf.addEventListener('pointerdown', e => {
-    if (!V?.w) return;
+    if (!V?.w || V.knijp) { start = null; return; }
     const [x, y] = pos(e); start = [x, y]; bewogen = false; V.greep = null;
     // Tekstvak of pijlpunt van een opmerking vastpakken: verslepen, of tikken om te bewerken.
+    // Een letter op het kozijn vastpakken om hem precies op het kozijn te schuiven.
+    const lb = labelOp(x, y);
+    if (lb) { V.label = lb; try { surf.setPointerCapture(e.pointerId); } catch {} e.preventDefault(); return; }
+    V.label = null;
     const bv = ballonOp(x, y), bp = !bv && ballonPuntOp(x, y);
     if (bv || bp) {
       const v = ballonVorm(bv || bp, V.w, V.h);
@@ -1134,12 +1331,19 @@ function koppelGebaren(surf) {
       else if (afstandTotLijn(x, y, sel.x1 * V.w, sel.y1 * V.h, sel.x2 * V.w, sel.y2 * V.h) < 28) { V.greep = 'heel'; V.greepVan = { x, y, ...sel }; }
     }
     if (V.greep || (V.modus !== 'bekijken' && V.modus !== 'opmerking')) { try { surf.setPointerCapture(e.pointerId); } catch {} e.preventDefault(); }
+    // Uiteinde vastgepakt: meteen het vergrootglas op dat punt.
+    if (sel && (V.greep === 1 || V.greep === 2)) {
+      const [p, a] = V.greep === 1 ? [[sel.x1, sel.y1], [sel.x2, sel.y2]] : [[sel.x2, sel.y2], [sel.x1, sel.y1]];
+      toonLoep(p[0] * V.w, p[1] * V.h, a[0] * V.w, a[1] * V.h, e, sel.maat != null ? maatLabel(sel.maat) : '');
+    }
   });
   surf.addEventListener('pointermove', e => {
     if (!start || !V) return;
+    if (V.knijp) { start = null; return; }
     const [x, y] = pos(e);
     if (Math.hypot(x - start[0], y - start[1]) > 6) bewogen = true;
     if (!bewogen) return;
+    if (V.label) { V.label.x = x / V.w; V.label.y = y / V.h; tekenLijnen(); return; }
     if (V.ballon) {
       const { b, deel, vx, vy } = V.ballon;
       if (deel === 'vak') { b.bx = Math.max(0, Math.min(1, (vx + x - start[0]) / V.w)); b.by = Math.max(0, Math.min(1, (vy + y - start[1]) / V.h)); }
@@ -1156,17 +1360,22 @@ function koppelGebaren(surf) {
       const h = sel.richting === 'horizontaal', [ax, ay] = V.greep === 1 ? [sel.x2 * V.w, sel.y2 * V.h] : [sel.x1 * V.w, sel.y1 * V.h];
       const [nx, ny] = volgRichting(h, ax, ay, x, y);
       if (V.greep === 1) { sel.x1 = nx / V.w; sel.y1 = ny / V.h; } else { sel.x2 = nx / V.w; sel.y2 = ny / V.h; }
+      toonLoep(nx, ny, ax, ay, e, sel.maat != null ? maatLabel(sel.maat) : '');
       tekenLijnen(); return;
     }
     if (V.modus === 'bekijken' || V.modus === 'opmerking') return;
     const h = V.modus === 'horizontaal';
     V.sel = null;
     V.nieuw = [start[0], start[1], ...volgRichting(h, start[0], start[1], x, y)];
+    toonLoep(V.nieuw[2], V.nieuw[3], V.nieuw[0], V.nieuw[1], e);
     tekenLijnen();
   });
   const einde = e => {
+    verbergLoep();
     if (!start || !V) return;
+    if (V.knijp) { start = null; V.nieuw = null; tekenLijnen(); return; }
     const [x, y] = pos(e);
+    if (V.label) { V.label = null; start = null; if (bewogen) bewaar(); return; }
     if (V.ballon) {
       const b = V.ballon.b; V.ballon = null; start = null;
       if (bewogen) bewaar(); else opmerkingSheet(b);
@@ -1195,14 +1404,14 @@ function koppelGebaren(surf) {
     start = null; V.greep = null;
   };
   surf.addEventListener('pointerup', einde);
-  surf.addEventListener('pointercancel', () => { start = null; if (V) { V.nieuw = null; V.greep = null; V.ballon = null; tekenLijnen(); } });
+  surf.addEventListener('pointercancel', () => { verbergLoep(); start = null; if (V) { V.nieuw = null; V.greep = null; V.ballon = null; V.label = null; tekenLijnen(); } });
 }
 
 // ---------- slimme lokale patroonherkenner (zelfde regels als de Flutter-app) ----------
 const TERMEN = [
   ['Boeideel', 'onderdeel', ['boeideel', 'boeidelen', 'boeiboord', 'boeiboorden']],
   ['Windveer', 'onderdeel', ['windveer', 'windveren']],
-  ['Kozijn', 'onderdeel', ['kozijn', 'kozijnen']],
+  ['Kozijn', 'onderdeel', ['kozijn', 'kozijnen', 'raampartij', 'raampartijen']],
   ['Raam', 'onderdeel', ['raam', 'ramen', 'raamhout', 'draairaam', 'draairamen', 'klepraam', 'kiepraam', 'schuifraam', 'stolpraam', 'binnenraam']],
   ['Deur', 'onderdeel', ['deur', 'deuren', 'voordeur', 'achterdeur', 'binnendeur', 'binnendeuren', 'tuindeur', 'glasdeur']],
   ['Onderdorpel', 'onderdeel', ['onderdorpel', 'onderdorpels']],
@@ -1326,8 +1535,14 @@ function leer(gehoord, verbeterd) {
   if (nieuw.length) bewaarGeleerd();
   return nieuw;
 }
+// Vaste verhaspelingen van de spraakherkenning: "kozijn" wordt vaak "we zijn" of "ko zijn", en "linksboven" aan elkaar.
+const SPRAAK_FIX = [
+  [/(?<![\p{L}\d])(?:we|wij|ze|ook|ko|co|jo|go|koos)\s+zijn(?=\s+(?:\p{L}(?![\p{L}])|links|rechts|midden|boven|onder|\d)|\s*$)/giu, 'kozijn'],
+  [/(?<![\p{L}\d])(links|rechts)(boven|onder)(?![\p{L}\d])/giu, '$1 $2'],
+];
 function verbeter(tekst) {
   const toegepast = [];
+  for (const [r, naar] of SPRAAK_FIX) tekst = tekst.replace(r, naar);
   for (const v of [...geleerd.vervangingen].sort((a, b) => b.van.length - a.van.length)) {
     const r = new RegExp(`(?<![\\p{L}\\d])${v.van.split(' ').map(escRe).join('\\s+')}(?![\\p{L}\\d])`, 'giu');
     if (r.test(tekst)) { tekst = tekst.replace(r, v.naar); toegepast.push(v); }
@@ -1410,12 +1625,11 @@ function herken(invoer) {
     lengte: 'lengte', lang: 'lengte', diepte: 'diepte', diep: 'diepte' };
   const zet = (soort, w) => { r[soort] = w; const i = ontbrekend.indexOf(soort); if (i >= 0) ontbrekend.splice(i, 1); };
   const LW = Object.keys(LABELS).join('|');
-  for (const m of [...t.matchAll(re(`\\b(${LW})\\b(?:\\s+(?:is|van|de))*\\s*${MAAT}`, 'gu'))].reverse()) {
-    zet(LABELS[m[1]], naarMeter(m[2], m[3])); t = vervang(t, m);
-  }
-  for (const m of [...t.matchAll(re(`${MAAT}\\s*(${LW})\\b`, 'gu'))].reverse()) {
-    zet(LABELS[m[3]], naarMeter(m[1], m[2])); t = vervang(t, m);
-  }
+  // "breedte 93 hoogte 208" (woord eerst) of "93 cm breed en 208 hoog" (getal eerst): de vorm die het eerst in de zin staat gaat voor.
+  const woordEerst = () => { for (const m of [...t.matchAll(re(`\\b(${LW})\\b(?:\\s+(?:is|van|de))*\\s*${MAAT}`, 'gu'))].reverse()) { zet(LABELS[m[1]], naarMeter(m[2], m[3])); t = vervang(t, m); } };
+  const getalEerst = () => { for (const m of [...t.matchAll(re(`${MAAT}\\s*(${LW})\\b`, 'gu'))].reverse()) { zet(LABELS[m[3]], naarMeter(m[1], m[2])); t = vervang(t, m); } };
+  const iw = t.search(re(`\\b(${LW})\\b(?:\\s+(?:is|van|de))*\\s*${MAAT}`, 'u')), ig = t.search(re(`${MAAT}\\s*(${LW})\\b`, 'u'));
+  if (ig >= 0 && (iw < 0 || ig < iw)) { getalEerst(); woordEerst(); } else { woordEerst(); getalEerst(); }
   for (const m of t.matchAll(re('\\b(breedte|hoogte|lengte|diepte)\\b', 'gu'))) {
     if (r[m[1]] == null && !ontbrekend.includes(m[1])) ontbrekend.push(m[1]);
   }
@@ -1448,17 +1662,33 @@ const termWeergave = x => (x.aantal != null ? `${x.aantal}x ` : '') + x.naam;
 // ---------- Android-app (Capacitor) ----------
 // In de app draait deze pagina in een WebView. Spraak, Bluetooth en bestanden lopen daar via de
 // ingebouwde plug-ins; in de browser blijft alles zoals het was.
-const APP_VERSIE = '2026.10.19-9';
+const APP_VERSIE = '2026.10.24-2';
 const UPDATE_URL = 'https://buildcalc-pro.github.io/buildcalc/';
 const Native = window.Capacitor?.isNativePlatform?.() ? window.Capacitor : null;
 const plugins = {};
-const plugin = naam => Native ? (plugins[naam] ??= Native.registerPlugin(naam)) : null;
+// De HTML laadt geen @capacitor/core, dus Capacitor.registerPlugin bestaat in de app niet.
+// Daarom praten we direct met de native brug: nativePromise voor gewone methodes, addListener voor events.
+function maakPlugin(naam) {
+  if (typeof Native.registerPlugin === 'function') return Native.registerPlugin(naam);
+  const kop = (Native.PluginHeaders || []).find(h => h.name === naam);
+  return new Proxy({}, { get: (_, m) => {
+    if (typeof m !== 'string' || m === 'then') return undefined; // geen "thenable", anders blijft await hangen
+    if (m === 'addListener') return async (ev, fn) => Native.addListener(naam, ev, fn);
+    if (m === 'removeAllListeners') return async () => Native.nativePromise(naam, m, {}).catch(() => {});
+    const h = kop?.methods?.find(x => x.name === m);
+    if (h && h.rtype && h.rtype !== 'promise') return (opt, cb) => Native.nativeCallback(naam, m, opt || {}, cb);
+    return opt => Native.nativePromise(naam, m, opt || {});
+  } });
+}
+const plugin = naam => Native ? (plugins[naam] ??= maakPlugin(naam)) : null;
 const naarHex = bytes => [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
 const uitHex = hex => { const h = String(hex || '').replace(/[^0-9a-f]/gi, ''), a = new Uint8Array(h.length / 2); for (let i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return new DataView(a.buffer); };
 
 // Spraak via de spraakherkenning van Android.
+// Let op: Android meldt "gestopt" (einde spraak) vóórdat de definitieve, nauwkeurigste tekst binnenkomt.
+// Daarom wachten we na "gestopt" nog even op die laatste uitslag en ruimen pas daarna de luisteraars op.
 const NativeSpraak = {
-  laatste: '', lijst: [],
+  laatste: '', lijst: [], klaar: null, wacht: null, stil: null,
   async start(spraak, onTekst) {
     const sr = plugin('SpeechRecognition');
     const { available } = await sr.available().catch(() => ({ available: false }));
@@ -1466,15 +1696,38 @@ const NativeSpraak = {
     const r = await sr.requestPermissions().catch(() => null);
     if (r && r.speechRecognition && r.speechRecognition !== 'granted') throw new Error('Geef BuildCalc toestemming voor de microfoon in de instellingen van Android.');
     await this.stopLuisteren();
-    this.laatste = '';
-    this.lijst.push(await sr.addListener('partialResults', d => { const t = (d.matches?.[0] || '').trim(); if (t) { this.laatste = t; onTekst(t, false); } }));
-    this.lijst.push(await sr.addListener('listeningState', d => { if (d.status === 'stopped') { if (this.laatste) onTekst(this.laatste, true); spraak.aan = false; spraak.melden(); this.stopLuisteren(); } }));
-    spraak.aan = true; spraak.melden();
-    const res = await sr.start({ language: 'nl-NL', maxResults: 1, partialResults: true, popup: false });
-    const t = res?.matches?.[0]; if (t) { this.laatste = t; onTekst(t, true); }
+    this.laatste = ''; let gestopt = false;
+    const afronden = () => {
+      if (!this.klaar) return;
+      const f = this.klaar; this.klaar = null; clearTimeout(this.wacht); clearTimeout(this.stil);
+      if (!this.laatste) spraak.fout = 'Ik heb niets verstaan. Tik op de microfoon en spreek rustig, dicht bij de telefoon.';
+      spraak.aan = false; spraak.melden();
+      if (this.laatste) onTekst(this.laatste, true);
+      this.stopLuisteren(); f();
+    };
+    this.klaar = () => {};
+    // Veiligheid: komt er na 15 s niets meer binnen (fout of stilte), dan netjes stoppen.
+    const bewaak = () => { clearTimeout(this.stil); this.stil = setTimeout(afronden, 15000); };
+    this.lijst.push(await sr.addListener('partialResults', d => {
+      const t = (d.matches?.[0] || '').trim(); bewaak();
+      if (t) this.laatste = t;
+      if (gestopt) return afronden(); // dit is de definitieve uitslag
+      if (t) onTekst(t, false);
+    }));
+    this.lijst.push(await sr.addListener('listeningState', d => {
+      if (d.status !== 'stopped' || gestopt) return;
+      gestopt = true; clearTimeout(this.wacht); this.wacht = setTimeout(afronden, 2000);
+    }));
+    spraak.aan = true; spraak.melden(); bewaak();
+    this.afronden = afronden;
+    await sr.start({ language: 'nl-NL', maxResults: 1, partialResults: true, popup: false });
   },
   async stopLuisteren() { const l = this.lijst; this.lijst = []; for (const x of l) try { await x.remove(); } catch {} },
-  stop() { plugin('SpeechRecognition')?.stop().catch(() => {}); },
+  // Handmatig stoppen: Android geeft daarna nog de definitieve tekst, die nemen we mee.
+  stop() {
+    try { plugin('SpeechRecognition')?.stop()?.catch?.(() => {}); } catch {}
+    if (this.klaar) { clearTimeout(this.wacht); this.wacht = setTimeout(() => this.afronden?.(), 1500); }
+  },
 };
 
 // Bestanden: opslaan in de app en aanbieden via het deelmenu van Android (mail, Drive, WhatsApp).
@@ -1559,7 +1812,7 @@ const Spraak = {
       r.start(); this.aan = true; this.melden();
     } catch (e) { this.fout = 'Spraakherkenning starten mislukt: ' + e.message; this.aan = false; this.melden(); }
   },
-  stop() { if (Native) NativeSpraak.stop(); try { this.rec?.stop(); } catch {} this.aan = false; this.melden(); },
+  stop() { if (Native) { NativeSpraak.stop(); return; } try { this.rec?.stop(); } catch {} this.aan = false; this.melden(); },
 };
 
 // ---------- Bluetooth-lasermeter (Leica DISTO en Bosch GLM) ----------
@@ -1577,8 +1830,11 @@ const LASER_PROTOCOLLEN = [
       ? float32(dv, 7) : null },
 ];
 const wacht = ms => new Promise(r => setTimeout(r, ms));
+const metLimiet = (p, ms, tekst) => Promise.race([p, wacht(ms).then(() => { throw new Error(tekst || 'geen antwoord'); })]);
+// Namen waaraan we een lasermeter herkennen in de keuzelijst.
+const LASER_NAAM = /disto|leica|glm|bosch|plr|stabila|hilti|pd-|dewalt|makita|laser/i;
 const Laser = {
-  status: 'los', naam: null, fout: null, device: null, luisteraars: new Set(), opMeting: null, laatste: 0,
+  status: 'los', naam: null, fout: null, device: null, luisteraars: new Set(), opMeting: null, laatste: 0, poging: 0, sluitKiezer: null,
   melden() { this.luisteraars.forEach(f => f()); },
   // Android meldt de services soms pas een moment na het verbinden; daarom een paar pogingen.
   async zoekService(device) {
@@ -1595,44 +1851,153 @@ const Laser = {
     throw new Error('geen meetservice gevonden (' + (fout?.message || 'onbekend') + ')');
   },
   // In de app via de Bluetooth-plug-in; dezelfde meters en dezelfde berichten als in Chrome.
-  async verbindNative() {
-    const ble = plugin('BluetoothLe');
+  // Elke stap heeft een tijdslimiet en de knop kan altijd afbreken, zodat de app nooit op "zoeken" blijft hangen.
+  // De meter kiezen gebeurt in een eigen lijst in de app (niet in de Android-lijst van de plug-in).
+  async verbindNative(stil = false) {
+    const ble = plugin('BluetoothLe'), poging = ++this.poging, weg = () => poging !== this.poging;
+    const fout = (naam, tekst) => Object.assign(new Error(tekst), { name: naam });
+    let id = null;
     try {
       this.status = 'zoeken'; this.melden();
-      await ble.initialize({ androidNeverForLocation: true });
-      const d = await ble.requestDevice({ optionalServices: LASER_PROTOCOLLEN.map(p => p.service) }).catch(async e => {
-        if (/cancel/i.test(e?.message || '')) throw Object.assign(new Error('geen meter'), { name: 'NotFoundError' }); throw e; });
+      await metLimiet(ble.initialize({ androidNeverForLocation: true }), 60000, 'Bluetooth start niet op.').catch(e => {
+        throw /permission/i.test(e?.message || '') ? fout('Melding', 'Geen toestemming voor Bluetooth. Geef BuildCalc toestemming voor "Apparaten in de buurt" bij Instellingen > Apps > BuildCalc > Rechten.') : e; });
+      if (weg()) return;
+      const { value: aan } = await metLimiet(ble.isEnabled(), 5000, '').catch(() => ({ value: true }));
+      if (!aan && stil) { this.status = 'los'; return this.melden(); } // automatisch: niet om Bluetooth zeuren
+      if (!aan) await metLimiet(ble.requestEnable(), 60000, '').catch(() => { throw fout('Melding', 'Bluetooth staat uit. Zet Bluetooth aan en tik opnieuw op de knop.'); });
+      if (weg()) return;
+      const d = await this.kiesNative(ble, stil);
+      if (weg()) return;
+      if (!d) { this.status = 'los'; return this.melden(); }
+      id = d.deviceId;
       this.status = 'verbinden'; this.melden();
-      await ble.addListener(`disconnected|${d.deviceId}`, () => { this.status = 'los'; this.melden(); });
-      await ble.connect({ deviceId: d.deviceId, timeout: 15000 });
-      const { services } = await ble.getServices({ deviceId: d.deviceId });
+      await wacht(600); // Android heeft na het zoeken even nodig voordat verbinden lukt
+      // Vangnet: blijft het verbinden langer dan een minuut hangen, dan stoppen en zeggen wat er mis is.
+      setTimeout(() => { if (weg() || this.status !== 'verbinden') return; this.poging++; ble.disconnect({ deviceId: id }).catch(() => {});
+        this.status = 'fout'; this.fout = 'De lasermeter reageert niet. Zet hem uit en weer aan en tik opnieuw op de knop.'; this.melden(); }, 60000);
+      await metLimiet(ble.addListener(`disconnected|${id}`, () => { if (this.device?.native === id) { this.device = null; this.status = 'los'; this.melden(); } }), 3000, '').catch(() => {});
+      // Android geeft soms meteen na het zoeken "status 147" (time-out). Dan los en een paar keer opnieuw proberen.
+      for (let poging = 1; ; poging++) {
+        try { await metLimiet(ble.connect({ deviceId: id, timeout: 10000 }), 12000, 'status 147'); break; }
+        catch (e) {
+          if (weg()) return;
+          await ble.disconnect({ deviceId: id }).catch(() => {});
+          if (poging >= 3) throw /status (133|147|8|62)\b/.test(e.message || '') ? Object.assign(new Error('De lasermeter reageert niet. Zet hem uit en weer aan en houd hem dichtbij. Sluit andere apps die met de meter verbinden (zoals Leica DISTO Plan).'
+            + (d.gekoppeld ? ' Werkt het dan nog niet: ontkoppel de meter in de Bluetooth-instellingen van je telefoon, de app verbindt zelf.' : '')), { name: 'Melding' }) : e;
+          await wacht(1200 * poging);
+        }
+      }
+      if (weg()) return ble.disconnect({ deviceId: id }).catch(() => {});
       let proto, svc;
-      for (const p of LASER_PROTOCOLLEN) { svc = services.find(x => x.uuid.toLowerCase() === p.service); if (svc) { proto = p; break; } }
-      if (!proto) throw new Error('geen meetservice gevonden');
+      for (let ronde = 0; ronde < 3 && !proto; ronde++) {
+        if (ronde) { await ble.discoverServices({ deviceId: id }).catch(() => {}); await wacht(700); }
+        const { services = [] } = await metLimiet(ble.getServices({ deviceId: id }), 10000, 'geen antwoord van de lasermeter');
+        for (const p of LASER_PROTOCOLLEN) { svc = services.find(x => x.uuid.toLowerCase() === p.service); if (svc) { proto = p; break; } }
+      }
+      if (!proto) throw new Error('dit apparaat is geen bekende lasermeter (Leica DISTO of Bosch GLM)');
       const meldend = svc.characteristics.filter(c => c.properties.notify || c.properties.indicate);
       let kanalen = meldend.filter(c => proto.kanalen.includes(c.uuid.toLowerCase()));
       if (!kanalen.length && proto.vrij) kanalen = meldend;
       if (!kanalen.length) throw new Error('geen meetkanaal gevonden');
       for (const ch of kanalen) {
         const bekend = proto.kanalen.includes(ch.uuid.toLowerCase());
-        await ble.addListener(`notification|${d.deviceId}|${svc.uuid}|${ch.uuid}`, ({ value }) => {
+        await ble.addListener(`notification|${id}|${svc.uuid}|${ch.uuid}`, ({ value }) => {
           const m = proto.decodeer(uitHex(value), bekend);
           if (m == null || Date.now() - this.laatste < 500) return;
           this.laatste = Date.now();
           this.opMeting?.(Math.round(m * 10000) / 10000);
         });
-        try { await ble.startNotifications({ deviceId: d.deviceId, service: svc.uuid, characteristic: ch.uuid }); } catch (e) { if (kanalen.length === 1) throw e; }
+        try { await metLimiet(ble.startNotifications({ deviceId: id, service: svc.uuid, characteristic: ch.uuid }), 10000, 'meldingen starten niet'); } catch (e) { if (kanalen.length === 1) throw e; }
       }
-      if (proto.start) await ble.write({ deviceId: d.deviceId, service: svc.uuid, characteristic: kanalen[0].uuid, value: naarHex(proto.start) });
-      this.device = { native: d.deviceId }; this.naam = d.name || proto.merk; this.status = 'verbonden';
+      if (proto.start) await metLimiet(ble.write({ deviceId: id, service: svc.uuid, characteristic: kanalen[0].uuid, value: naarHex(proto.start) }), 10000, 'de meter reageert niet');
+      if (weg()) return ble.disconnect({ deviceId: id }).catch(() => {});
+      this.device = { native: id }; this.naam = d.name || proto.merk; this.status = 'verbonden';
     } catch (e) {
+      if (weg()) return;
+      if (id) ble.disconnect({ deviceId: id }).catch(() => {});
+      if (stil && !id) { this.status = 'los'; return this.melden(); } // automatisch zoeken mislukt: stil blijven
       this.status = 'fout';
-      this.fout = e.name === 'NotFoundError' ? 'Geen lasermeter gekozen.' : 'Verbinden mislukt: ' + (e.message || e);
+      this.fout = e.name === 'Melding' ? e.message : 'Verbinden mislukt: ' + (e.message || e);
     }
     this.melden();
   },
+  // Eigen keuzelijst met alleen lasermeters (herkend aan naam of meetservice). Een meter die al met de telefoon
+  // verbonden of gekoppeld is staat er meteen in; zodra er een meter is gevonden verbindt de app er zelf mee.
+  kiesNative(ble, stil = false) {
+    return new Promise(klaar => {
+      const gevonden = new Map(), diensten = LASER_PROTOCOLLEN.map(p => p.service);
+      const html = `<h2>Lasermeter kiezen</h2>
+        <div class="melding" id="lzoek">Zoeken… Zet de lasermeter aan en zet Bluetooth op de meter aan.</div>
+        <div class="menu" id="llijst" style="max-height:45vh;overflow:auto"></div>
+        <div class="actions"><button id="lopnieuw">Opnieuw zoeken</button><button id="lstop">Annuleren</button></div>`;
+      // Stil (automatisch): dezelfde lijst, maar onzichtbaar.
+      const s = stil ? Object.assign(document.createElement('div'), { innerHTML: html }) : sheet(html);
+      let luister = null, klok = null, auto = null, dicht = false;
+      // Stoppen met zoeken mag nooit blijven hangen: hooguit 2 seconden wachten.
+      const stopScan = async () => { clearTimeout(klok); try { await metLimiet(ble.stopLEScan(), 2000); } catch {} };
+      const einde = async d => {
+        if (dicht) return; dicht = true; this.sluitKiezer = null; clearTimeout(auto);
+        s.remove();
+        await stopScan(); try { await metLimiet(Promise.resolve(luister).then(l => l?.remove()), 2000); } catch {}
+        klaar(d);
+      };
+      this.sluitKiezer = () => einde(null);
+      s.onclick = e => { if (e.target === s) einde(null); };
+      $('#lstop', s).onclick = () => einde(null);
+      const teken = () => {
+        const rijen = [...gevonden.values()].sort((x, y) => (y.laser - x.laser) || (y.verbonden - x.verbonden) || (y.rssi - x.rssi));
+        $('#llijst', s).innerHTML = rijen.map(r => `<button data-id="${esc(r.deviceId)}"><span style="color:${r.laser ? 'var(--gold)' : 'var(--muted)'}">${ic('bt')}</span>
+          <span style="flex:1;text-align:left">${esc(r.name || 'Onbekend apparaat')}${r.verbonden ? ' <small style="color:var(--ok)">verbonden</small>' : r.gekoppeld ? ' <small style="color:var(--muted)">gekoppeld</small>' : ''}</span></button>`).join('');
+        s.querySelectorAll('[data-id]').forEach(b => b.onclick = () => einde(gevonden.get(b.dataset.id)));
+      };
+      const voeg = (dev, extra = {}) => {
+        if (!dev?.deviceId) return;
+        const oud = gevonden.get(dev.deviceId) || { deviceId: dev.deviceId, name: '', rssi: -999, laser: false, verbonden: false, gekoppeld: false };
+        const naam = dev.name || extra.localName || oud.name;
+        const laser = oud.laser || LASER_NAAM.test(naam || '') || (dev.uuids || extra.uuids || []).some(u => diensten.includes(String(u).toLowerCase()));
+        if (!laser) return; // alleen lasermeters: geen horloges, tags, printers of koptelefoons
+        gevonden.set(dev.deviceId, { ...oud, name: naam, laser, rssi: extra.rssi ?? oud.rssi, verbonden: oud.verbonden || !!extra.verbonden, gekoppeld: oud.gekoppeld || !!extra.gekoppeld });
+        teken();
+        // Lasermeter gevonden: na een kort moment (zodat ook een tweede meter kan binnenkomen) automatisch verbinden.
+        if (!auto) {
+          $('#lzoek', s).textContent = 'Lasermeter gevonden. Verbinden…';
+          auto = setTimeout(() => einde([...gevonden.values()].sort((x, y) => (y.verbonden - x.verbonden) || (y.rssi - x.rssi))[0]), 1200);
+        }
+      };
+      const zoek = async () => {
+        await stopScan();
+        $('#lzoek', s).textContent = 'Zoeken… Zet de lasermeter aan en zet Bluetooth op de meter aan.';
+        // Een meter die al verbonden is (bijvoorbeeld via de Bluetooth-instellingen) zendt zich niet meer uit; die halen we zo op.
+        ble.getConnectedDevices({ services: diensten }).then(r => (r?.devices || []).forEach(d => voeg(d, { verbonden: true }))).catch(() => {});
+        ble.getBondedDevices().then(r => (r?.devices || []).forEach(d => voeg(d, { gekoppeld: true }))).catch(() => {});
+        try { await metLimiet(ble.requestLEScan({ allowDuplicates: false }), 10000, ''); }
+        catch (e) { if (stil) return einde(null); if (!dicht) $('#lzoek', s).textContent = 'Zoeken lukt niet (' + (e.message || 'onbekend') + '). Staan Bluetooth en de lasermeter aan?'; return; }
+        klok = setTimeout(async () => { await stopScan(); if (stil) return einde(null); if (!dicht) $('#lzoek', s).textContent = gevonden.size ? 'Klaar met zoeken. Tik op je lasermeter.' : 'Geen lasermeter gevonden. Zet de lasermeter en zijn Bluetooth aan en tik op Opnieuw zoeken.'; }, 25000);
+      };
+      luister = ble.addListener('onScanResult', r => { if (!dicht) voeg(r?.device, { localName: r?.localName, rssi: r?.rssi, uuids: r?.uuids }); });
+      if (!stil) $('#lopnieuw', s).onclick = zoek;
+      zoek();
+    });
+  },
+  // Automatisch verbinden (bij het openen van een foto): zonder lijst, alleen met een lasermeter.
+  // Niet opnieuw als je de meter zelf hebt losgekoppeld of het zoeken hebt gestopt.
+  auto() {
+    if (!Native || this.zelfUit || !['los', 'fout'].includes(this.status)) return;
+    this.fout = null; this.verbindNative(true);
+  },
+  // Eén knopgedrag voor alle Bluetooth-knoppen: koppelen, verbreken, of afbreken als hij nog bezig is.
+  knop() {
+    if (this.status === 'verbonden') return this.verbreek();
+    if (this.status === 'zoeken' || this.status === 'verbinden') return this.annuleer();
+    return this.verbind();
+  },
+  annuleer() {
+    this.zelfUit = true; this.poging++; this.sluitKiezer?.();
+    if (Native) { const ble = plugin('BluetoothLe'); ble.stopLEScan().catch(() => {}); }
+    this.status = 'los'; this.fout = null; this.melden();
+  },
   async verbind() {
-    this.fout = null;
+    this.fout = null; this.zelfUit = false;
     if (Native) return this.verbindNative();
     if (!navigator.bluetooth) {
       this.status = 'fout';
@@ -1674,7 +2039,7 @@ const Laser = {
     }
     this.melden();
   },
-  verbreek() { try { if (this.device?.native) plugin('BluetoothLe').disconnect({ deviceId: this.device.native }); else this.device?.gatt.disconnect(); } catch {} this.status = 'los'; this.melden(); },
+  verbreek() { this.zelfUit = true; this.poging++; try { if (this.device?.native) plugin('BluetoothLe').disconnect({ deviceId: this.device.native }).catch(() => {}); else this.device?.gatt.disconnect(); } catch {} this.device = null; this.status = 'los'; this.melden(); },
 };
 function laserKnopHtml() {
   const [icoon, tekst, kleur] = {
@@ -1686,8 +2051,7 @@ function laserKnopHtml() {
     ${Laser.status === 'verbonden' ? '<div class="melding ok">Druk op de meetknop van de lasermeter: de maat wordt direct opgeslagen en de volgende open lijn gekozen.</div>' : ''}`;
 }
 function koppelLaserKnop(el) {
-  el.querySelectorAll('[data-laser]').forEach(b => b.onclick = () =>
-    Laser.status === 'verbonden' ? Laser.verbreek() : (Laser.status === 'los' || Laser.status === 'fout') && Laser.verbind());
+  el.querySelectorAll('[data-laser]').forEach(b => b.onclick = () => Laser.knop());
 }
 
 // ---------- weergave van een herkende meting ----------
@@ -1696,7 +2060,7 @@ function statusHtml(st) {
   return `<span class="statuslabel ${k}">${t}</span>`;
 }
 function metingHtml(m, compact) {
-  const groepen = [['onderdeel', 'Onderdeel'], ['schade', 'Schade'], ['behandeling', 'Behandeling']];
+  const groepen = [['onderdeel', 'Onderdeel'], ['schade', 'Schade']];
   let h = m.velden.length ? '<div class="maatvakken">' + m.velden.map(([n, w]) =>
     `<div class="maatvak ${w === '?' ? 'open' : ''}"><small>${n}</small><b>${w}</b></div>`).join('') + '</div>' : '';
   for (const [soort, label] of groepen) {
@@ -1762,20 +2126,32 @@ function koppelMic(knop, melding, rust, onTekst) {
     if (!knop.isConnected) { Spraak.luisteraars.delete(update); return; }
     knop.classList.toggle('aan', Spraak.aan);
     knop.innerHTML = Spraak.aan ? ic('stop') : ic('mic');
-    melding.textContent = Spraak.fout || (Spraak.aan ? 'Ik luister… spreek je maten en opmerkingen in.' : rust);
+    // Na het luisteren de uitslag laten staan in plaats van terug te springen naar de rusttekst.
+    if (Spraak.fout) melding.textContent = Spraak.fout;
+    else if (Spraak.aan) melding.textContent = 'Ik luister… spreek je maten en opmerkingen in.';
+    else if (!melding.textContent || melding.textContent.startsWith('Ik luister')) melding.textContent = rust;
     melding.classList.toggle('fout', !!Spraak.fout);
   };
   Spraak.luisteraars.add(update); update();
-  knop.onclick = () => Spraak.aan ? Spraak.stop() : Spraak.start(onTekst);
+  // Tekst die binnenkomt nadat het venster al dicht is, wordt genegeerd.
+  knop.onclick = () => Spraak.aan ? Spraak.stop() : Spraak.start((tekst, klaar) => { if (knop.isConnected) onTekst(tekst, klaar); });
 }
 function wijzigNotitie(s, n) {
   const d = dialoog(`<h2>Notitie aanpassen</h2><label class="field"><textarea rows="4" id="nt">${esc(n.tekst)}</textarea></label>
     <div style="color:var(--muted);font-size:12px">Vul ontbrekende maten aan, bijv. "hoogte 2,10".</div>
     <div class="actions"><button id="nweg" class="danger">Verwijderen</button><button id="nok">Opslaan</button></div>`);
-  $('#nok', d).onclick = () => { const v = $('#nt', d).value.trim(), oud = n.tekst; const nieuw = v ? leer(oud, v) : []; if (v) { n.tekst = v; bewaar(); } sluit(d); render(); meldGeleerd(nieuw); aiBijwerken(); };
+  $('#nok', d).onclick = () => { const v = $('#nt', d).value.trim(), oud = n.tekst; const nieuw = v ? leer(oud, v) : [];
+    if (v) { n.tekst = v; for (const f of s.fotos) for (const lb of f.labels || []) if (lb.id === n.id) { lb.notitie = v;
+      const p0 = postenVoorNotitie(v, '')[0] || {}, m0 = herken(zonderExtra(v)), b = p0.breedte ?? m0.breedte, h = p0.hoogte ?? m0.hoogte;
+      for (const l of f.lijnen) if (l.kozijn === lb.tekst) { if (l.richting === 'horizontaal' && b != null) l.maat = b; if (l.richting === 'verticaal' && h != null) l.maat = h; } } bewaar(); } sluit(d); render(); meldGeleerd(nieuw); aiBijwerken(); };
   $('#nweg', d).onclick = async () => {
     sluit(d);
-    if (await bevestig('Notitie verwijderen?', 'Deze notitie wordt verwijderd.')) { s.notities = s.notities.filter(x => x !== n); bewaar(); render(); }
+    if (await bevestig('Notitie verwijderen?', 'Deze notitie wordt verwijderd.')) { s.notities = s.notities.filter(x => x !== n);
+      for (const f of s.fotos) if (f.labels) {
+        const weg = f.labels.filter(l => l.id === n.id).map(l => l.tekst);
+        f.labels = f.labels.filter(l => l.id !== n.id); f.lijnen = f.lijnen.filter(l => !weg.includes(l.kozijn));
+      }
+      bewaar(); render(); }
   };
 }
 
@@ -1811,7 +2187,8 @@ function maatSheet(lijn) {
   $('#mOk', s).onclick = opslaan;
   inp.onkeydown = e => { if (e.key === 'Enter') opslaan(); };
   if ($('#mWis', s)) $('#mWis', s).onclick = () => { inp.value = ''; opslaan(); };
-  koppelMic($('#mMic', s), melding, '', tekst => {
+  koppelMic($('#mMic', s), melding, '', (tekst, klaar = true) => {
+    if (!klaar) { melding.textContent = `"${tekst}"…`; return; } // pas invullen als de zin af is
     const { aantal, rest } = splitsAantal(tekst);
     const r = herken(rest);
     if (r.eersteMaat != null) { inp.value = veldMaat(r.eersteMaat); bron = 'spraak'; }
@@ -1819,6 +2196,8 @@ function maatSheet(lijn) {
     const type = V && typeUitTekst(rest, V.s.naam);
     if (type) { foto().type = type; bewaar(); tekenUI(); melding.textContent = `"${tekst}" → ${type.code} ${type.naam}`; return; }
     melding.textContent = r.eersteMaat != null || aantal != null ? `"${tekst}"` + (aantal != null ? ` → ${aantal} stijlen` : '') : `Geen maat verstaan in "${tekst}".`;
+    // Ingesproken maat: meteen op de lijn zetten, zonder nog op Opslaan te hoeven tikken.
+    if (r.eersteMaat != null) setTimeout(() => { if (s.isConnected) opslaan(); }, 700);
   });
   const laserUpdate = () => { $('#mLaser', s).innerHTML = laserKnopHtml(); koppelLaserKnop($('#mLaser', s)); };
   Laser.luisteraars.add(laserUpdate); laserUpdate();
@@ -2188,7 +2567,7 @@ const DEFS = {
 };
 const GLASDEUR = { hout: ['008', '058'], staal: ['108', '158'], alu: ['110', '160'], kunststof: ['308', '358'] };
 const WERKVOLGORDE = ['Schuren', 'Ontvetten', 'Plamuren', 'Kitten', 'Houtrotherstel', 'Vervangen', 'Gronden', 'Voorlakken', 'Aflakken', 'Beitsen', 'Impregneren'];
-const TOPCALC_KOLOMMEN = ['Object', 'Onderdeel', 'Omschrijving', 'Aantal', 'Eenheid', 'Bewerking', 'Locatie', 'Breedte (m)', 'Hoogte (m)', 'Lengte (m)', 'Status', 'Opmerking'];
+const TOPCALC_KOLOMMEN = ['Object', 'Onderdeel', 'Omschrijving', 'Aantal', 'Eenheid', 'Bestek', 'Locatie', 'Breedte (m)', 'Hoogte (m)', 'Lengte (m)', 'Status', 'Opmerking'];
 const sleutelLabel = s => s.replaceAll('|', ', ');
 // Eigen codes ("001 A2") per koppelsleutel, bijv. "Kozijn|buiten|hout".
 const CODES_KEY = 'buildcalc.topcalc.v2';
@@ -2216,10 +2595,29 @@ function kiesCode(onderdeel, plek, materiaal, glas, tekst, klasse) {
   return null;
 }
 
+// Extra strekkende meters bij een kozijn: "3x stijl van 1,20 meter", "2 tussenstijlen", "1 dorpel".
+// Zonder eigen maat telt een stijl de hoogte en een dorpel of regel de breedte.
+const EXTRA_RE = /(?<![\d,.])(\d+|een|twee|drie|vier|vijf|zes)\s*(?:x|keer)?\s*(?:extra\s+)?(tussenstijl|stijl|dorpel|tussenregel|regel)(?:en|s)?(?:\s+(?:van|à|a)\s+(\d+(?:[,.]\d+)?)\s*(mm|cm|m|meter)?)?/gi;
+// Zin zonder de extra stijlen/dorpels, zodat "3 stijlen van 80 cm" niet als breedte en hoogte wordt gelezen.
+const zonderExtra = t => String(t || '').replace(new RegExp(EXTRA_RE.source, 'gi'), ' ');
+function extraStrekkend(tekst, b, h) { return extraDelen(tekst, b, h).reduce((a, d) => a + d.aantal * d.m, 0); }
+function extraDelen(tekst, b, h) {
+  const getal = v => +String(v).replace(',', '.');
+  const woord = { een: 1, twee: 2, drie: 3, vier: 4, vijf: 5, zes: 6 };
+  const uit = [];
+  const re = new RegExp(EXTRA_RE.source, 'gi');
+  for (const [, n, soort, maat, eenheid] of tekst.matchAll(re)) {
+    const aantal = woord[n.toLowerCase()] ?? +n;
+    let m = maat != null ? getal(maat) : /stijl/i.test(soort) ? h : b;
+    if (maat != null) m = /^mm$/i.test(eenheid || '') ? m / 1000 : /^cm$/i.test(eenheid || '') || (!eenheid && m >= 10) ? m / 100 : m;
+    if (aantal > 0 && m > 0) uit.push({ aantal, m, soort: soort.toLowerCase() });
+  }
+  return uit;
+}
 const TOPCALC_MATERIALEN = ['hout', 'alu', 'staal', 'kunststof', 'beton', 'steen'];
 const getalAi = v => typeof v === 'number' && v > 0 ? v : null;
 function postenVoorNotitie(tekst, locatie, eigen = s => eigenCodes[s], ai = null) {
-  const m = herken(tekst);
+  const m = herken(zonderExtra(tekst));
   // De AI-duiding (Gemini) gaat voor de regels als die bruikbaar is.
   if (!ai || !DEFS[ai.onderdeel]) ai = null;
   const onderdelen = m.termen.filter(t => t.soort === 'onderdeel').map(t => t.naam);
@@ -2228,14 +2626,12 @@ function postenVoorNotitie(tekst, locatie, eigen = s => eigenCodes[s], ai = null
   const materiaal = TOPCALC_MATERIALEN.includes(ai?.materiaal) ? ai.materiaal : materiaalVan(tekst) || DEFS[hoofd]?.materiaal || 'hout';
   const glas = hoofd === 'Deur' && (ai ? ai.glas === true : heeft(tekst, '(glas|ruit)'));
   const b = (ai && getalAi(ai.breedte)) ?? m.breedte, h = (ai && getalAi(ai.hoogte)) ?? m.hoogte, l = (ai && getalAi(ai.lengte)) ?? m.lengte;
-  // Behandelingen in werkvolgorde; overige schade als bewerking erbij.
-  const behandelingen = m.termen.filter(t => t.soort === 'behandeling').sort((x, y) => WERKVOLGORDE.indexOf(x.naam) - WERKVOLGORDE.indexOf(y.naam));
   const schades = m.termen.filter(t => t.soort === 'schade').map(t => t.naam);
   let herstel = schades.filter(s => s === 'Houtrot' || s === 'Scheur');
   const aiHerstel = ai ? Math.round(+ai.herstel || 0) : null;
   if (aiHerstel != null) herstel = aiHerstel === 0 ? [] : herstel.length ? herstel : ['Houtrot'];
-  const aiBeh = (Array.isArray(ai?.behandelingen) ? ai.behandelingen : []).filter(x => typeof x === 'string' && x.trim()).map(x => x.trim().toLowerCase());
-  const bewerking = [...(aiBeh.length ? aiBeh : behandelingen.map(t => termWeergave(t).toLowerCase())), ...schades.filter(s => !herstel.includes(s)).map(s => s.toLowerCase())].join(', ');
+  // De behandeling staat in de bestekcode (bijv. OHD03); gronden, aflakken enz. worden niet apart genoemd.
+  const bewerking = bestekCode(tekst);
   const extra = onderdelen.filter(o => o !== hoofd).join(', ').toLowerCase();
   const basis = { bewerking, locatie, breedte: b, hoogte: h, lengte: l, opmerking: tekst };
   if (!hoofd) return [{ ...basis, object: '', onderdeel: '', omschrijving: onderdelen.length ? `${onderdelen.join(', ')} (geen code)` : 'Opname zonder onderdeel', aantal: null, eenheid: '', open: true }];
@@ -2252,7 +2648,7 @@ function postenVoorNotitie(tekst, locatie, eigen = s => eigenCodes[s], ai = null
   if (keuze) {
     const [object, ot] = keuze;
     const aantal = ot.eenheid === 'M2' ? (b != null && h != null ? rond(b * h) : l != null && (h ?? b) != null ? rond(l * (h ?? b)) : null)
-      : ot.eenheid === 'M1' ? (def.maat === 'omtrek' ? (b != null && h != null ? rond(2 * (b + h)) : l != null ? rond(l) : null) : (l ?? b ?? h) != null ? rond(l ?? b ?? h) : null)
+      : ot.eenheid === 'M1' ? (def.maat === 'omtrek' ? (b != null && h != null ? rond(2 * (b + h) + extraStrekkend(tekst, b, h)) : l != null ? rond(l) : null) : (l ?? b ?? h) != null ? rond(l ?? b ?? h) : null)
       : ot.eenheid === 'ST' ? 1 : ai ? getalAi(ai.aantal) : null;
     posten.push({ ...basis, object: object.code, onderdeel: ot.code, omschrijving: `${object.naam}, ${ot.naam}${extra ? ` (${extra})` : ''}`,
       aantal, eenheid: ot.eenheid, open: aantal == null || (!ai && m.ontbrekend.length > 0), sleutel, doorAi: !!ai });
@@ -2273,9 +2669,123 @@ function maakPosten(p, eigen) {
   return uit;
 }
 const postCode = p => p.object ? `${p.object} ${p.onderdeel}` : '';
+// Een notitie als regels zoals op het Topcalc-opnameformulier: Code | Type | Omschrijving | Breedte | Hoogte | Strekkend | Aantal | Bestek.
+// Code is het object (bijv. 001), Type het onderdeel (bijv. A2). Maten in hele cm; Aantal is het aantal stuks.
+const FORM_KOLOMMEN = ['Code', 'Type', 'Omschrijving', 'Breedte', 'Hoogte', 'Strekkend', 'Aantal', 'Bestek'];
+// Bestekcode zoals op het formulier: drie letters plus een nummer, bijv. OHD03 of ONB03. De code zegt welke behandeling het wordt.
+// Spraakherkenning maakt er vaak "o h d 3" of "ohd 03" van; dat wordt weer OHD03.
+const BESTEK_BEKEND = ['ohd', 'onb', 'oni', 'nwb', 'nwi', 'nub', 'nui'];
+const BESTEK_RE = new RegExp(`(?<![\\p{L}])(${BESTEK_BEKEND.map(c => c.split('').join('\\s*')).join('|')})\\s*-?\\s*(\\d{1,2})(?![\\d,.])`, 'iu');
+function bestekCode(tekst) {
+  const t = String(tekst || '');
+  // Bekende codes; anders drie losse letters ("p q r 2") of drie hoofdletters ("PQR02") met een nummer.
+  const m = BESTEK_RE.exec(t) || /(?<![\p{L}])([a-z] [a-z] [a-z])\s*-?\s*(\d{1,2})(?![\d,.])/iu.exec(t) || /(?<![\p{L}])([A-Z]{3})\s*-?\s*(\d{1,2})(?![\d,.])/u.exec(t);
+  return m ? m[1].replace(/\s+/g, '').toUpperCase() + m[2].padStart(2, '0') : '';
+}
+// Waar de notitie over gaat, zoals je het zegt: "kozijn A links boven" wordt "Kozijn A • links boven".
+const NOTITIE_DINGEN = 'raampartij|kozijn|raam|deur|voordeur|achterdeur|dakkapel|boeideel|windveer|goot|lijst|plint|kozijnen|ramen|deuren|luik|hek|schutting|trap';
+function notitieLabel(tekst) {
+  const { naam, waar } = notitieDelen(tekst);
+  return [naam, waar].filter(Boolean).join(' • ').toUpperCase();
+}
+function notitieDelen(tekst) {
+  const t = String(tekst || '');
+  const ding = new RegExp(`\\b(${NOTITIE_DINGEN})\\s+(?:(?:links|rechts|midden|boven|onder)\\s+){0,2}([a-z]|\\d{1,2})(?![\\w,.])(?!\\s*(?:mm|cm|m|meter|bij|x|keer)\\b)`, 'i').exec(t);
+  const plek = /\b(links|rechts|midden)(?:\s+(boven|onder))?\b|\b(boven|onder)(?:\s*(links|rechts))?\b/i.exec(t);
+  const naam = ding ? `${ding[1][0].toUpperCase()}${ding[1].slice(1).toLowerCase()} ${ding[2].toUpperCase()}` : '';
+  const waar = plek ? plek[0].toLowerCase().replace(/\s+/g, ' ') : '';
+  return { naam, ding: ding ? ding[1].toLowerCase() : '', letter: ding ? ding[2].toUpperCase() : '', waar };
+}
+// Ruw kader rond de genoemde plek, als Gemini (nog) niet heeft gekeken.
+function ruwKader(l) {
+  const w = 0.22, h = 0.3, x0 = Math.max(0.04, Math.min(0.96 - w, l.x - w / 2)), y0 = Math.max(0.04, Math.min(0.92 - h, l.y - h / 2));
+  return { x0, y0, x1: x0 + w, y1: y0 + h };
+}
+// Breedte- en hoogtelijn van één kozijn, zoals de gewone maatlijnen; de letter klein linksboven in het kozijn.
+function kozijnLijnen(f, label, k, { b, h }) {
+  const L = label.tekst, oud = f.lijnen.filter(l => l.kozijn === L);
+  const hor = oud.find(l => l.richting === 'horizontaal'), ver = oud.find(l => l.richting === 'verticaal');
+  f.lijnen = f.lijnen.filter(l => l.kozijn !== L);
+  const yb = Math.min(0.97, k.y1 + 0.03), xh = Math.max(0.02, k.x0 - 0.025);
+  f.lijnen.push({ id: hor?.id || nieuwId(), kozijn: L, richting: 'horizontaal', x1: k.x0, y1: yb, x2: k.x1, y2: yb, maat: b ?? hor?.maat ?? null, bron: 'spraak' },
+    { id: ver?.id || nieuwId(), kozijn: L, richting: 'verticaal', x1: xh, y1: k.y0, x2: xh, y2: k.y1, maat: h ?? ver?.maat ?? null, bron: 'spraak' });
+  Object.assign(label, { x: k.x0 + 0.035, y: k.y0 + 0.04 });
+}
+// Waar de letter op de foto komt: links/midden/rechts en boven/onder als ruwe plek (0..1). Daarna zelf te verslepen.
+function labelPlek(waar) {
+  const w = waar || '';
+  return { x: /links/.test(w) ? 0.2 : /rechts/.test(w) ? 0.8 : 0.5, y: /boven/.test(w) ? 0.28 : /onder/.test(w) ? 0.72 : 0.5 };
+}
+// Maten zoals in Topcalc: hele centimeters. Strekkend = 2 × (B + H) plus extra stijlen en dorpels; 0 als de code geen m1 is.
+const cmGetal = v => String(Math.round(v * 100));
+// Hoort de notitie bij een kozijn op een foto, dan gaan de maten van de lijnen (laser of spraak) voor de maten uit de zin.
+function notitieKozijn(n, s) {
+  if (!s?.fotos) return null;
+  for (const f of s.fotos) {
+    const lb = (f.labels || []).find(l => l.id === n.id);
+    if (lb) return kozijnMaten(f, lb.tekst);
+  }
+  const f = n.fotoId && s.fotos.find(x => x.id === n.fotoId);
+  return f && !notitieDelen(n.tekst).letter ? kozijnMaten(f, null) : null;
+}
+// Korte omschrijving voor Topcalc: afkorting, letter, plek en foto, bijv. "Rp A LB F1".
+const AFKORTING = { raampartij: 'Rp', kozijn: 'Kz', kozijnen: 'Kz', raam: 'Rm', ramen: 'Rm', deur: 'Dr', deuren: 'Dr', voordeur: 'Vd', achterdeur: 'Ad',
+  dakkapel: 'Dk', boeideel: 'Bd', windveer: 'Wv', goot: 'Gt', lijst: 'Lst', plint: 'Pl', luik: 'Lk', hek: 'Hk', schutting: 'Sch', trap: 'Tr', stijl: 'St', dorpel: 'Dp' };
+const PLEK_AFK = { links: 'L', rechts: 'R', midden: 'M', boven: 'B', onder: 'O' };
+function korteOmschrijving(n, s, post, i) {
+  if (i > 0) return /houtrot|scheur/i.test(post.omschrijving || '') ? 'Herstel' : String(post.omschrijving || '').split(',')[0];
+  const d = notitieDelen(n.tekst);
+  const ding = d.ding || (new RegExp(`\\b(${Object.keys(AFKORTING).join('|')})\\b`, 'i').exec(n.tekst)?.[1] || '').toLowerCase();
+  const naam = AFKORTING[ding] || (ding ? ding[0].toUpperCase() + ding.slice(1, 3) : String(post.omschrijving || '').replace(/^(hout|alu|staal|kunststof)\s+/i, '').split(/[ ,]/)[0].slice(0, 6));
+  const plek = d.waar ? d.waar.split(' ').map(w => PLEK_AFK[w] || '').join('') : '';
+  const fi = (s?.fotos || []).findIndex(f => f.id === n.fotoId || (f.labels || []).some(l => l.id === n.id));
+  return [naam, d.letter, plek, fi >= 0 ? `F${fi + 1}` : ''].filter(Boolean).join(' ');
+}
+// "3 kozijnen 80 bij 60", "20 van deze", "4 stuks": het aantal voor de kolom Aantal (extra stijlen tellen niet mee).
+function stuksVan(tekst) {
+  const woord = { een: 1, twee: 2, drie: 3, vier: 4, vijf: 5, zes: 6, zeven: 7, acht: 8, negen: 9, tien: 10 };
+  const m = /(?<![\d,.])(\d{1,3}|twee|drie|vier|vijf|zes|zeven|acht|negen|tien)\s*x?\s+(?:(?:dezelfde|gelijke|zulke)\s+)?(?:kozijnen|ramen|deuren|luiken|stuks|van deze|van dit|van die|zoals deze|dezelfde|gelijke)(?![\p{L}])/iu.exec(zonderExtra(tekst));
+  const n = m ? woord[m[1].toLowerCase()] ?? +m[1] : 0;
+  return n > 1 ? n : 1;
+}
+function formRegels(n, s) {
+  const locatie = typeof s === 'string' ? s : s?.naam || '', bestek = bestekCode(n.tekst);
+  const k = notitieKozijn(n, s), stuks = stuksVan(n.tekst);
+  return postenVoorNotitie(n.tekst, locatie, undefined, n.aiTekst === n.tekst ? n.ai : null).map((p, i) => {
+    const omtrek = p.eenheid === 'M1' && (p.breedte != null && p.hoogte != null || k && i === 0);
+    const vanFoto = k && i === 0 && (p.eenheid === 'M1' || p.eenheid === 'M2');
+    let b = vanFoto ? k.B : p.breedte, h = vanFoto ? k.H : p.hoogte, str = null;
+    if (omtrek) str = vanFoto ? k.totaal : p.aantal;
+    else if (p.eenheid === 'M1') { b = p.lengte ?? b ?? h; h = 0; str = b; }
+    else if (p.eenheid !== 'M2') { b = b ?? 0; h = h ?? 0; str = 0; }
+    else str = 0;
+    const vak = v => v == null ? '?' : cmGetal(v);
+    // Wat Topcalc niet zelf uitrekent (extra stijlen/dorpels) staat erbij, voor F8.
+    const extra = omtrek && b != null && h != null && str != null ? Math.round(str * 100) - 2 * (Math.round(b * 100) + Math.round(h * 100)) : 0;
+    const oms = korteOmschrijving(n, s, p, i) + (extra > 0 ? ` +${extra}` : '');
+    return [p.object || '?', p.onderdeel || '?', oms, vak(b), vak(h), vak(str),
+      p.eenheid === 'ST' ? (p.aantal == null ? '?' : String(p.aantal)) : String(i === 0 ? stuks : 1), bestek];
+  });
+}
+// Net als in Topcalc: Code | Type | Omschrijving | Breedte | Hoogte | Strekkend | Aantal | Bestek, maten in cm.
+function formTabelHtml(regels) {
+  const kop = ['Code', 'Type', 'Omschrijving', 'Breedte', 'Hoogte', 'Strekk.', 'Aantal', 'Bestek'];
+  return `<table class="form"><tr>${kop.map((k, i) => `<th class="${i > 2 && i < 7 ? 'r' : ''}">${k}</th>`).join('')}</tr>${regels.map(r =>
+    `<tr>${r.map((v, i) => `<td class="${i < 2 ? 'code' : i === 2 ? 'oms' : i < 7 ? 'r' : ''}${v === '?' ? ' open' : ''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</table>`;
+}
+// De meetstaat zoals in Topcalc: per gevel (submap) genummerd "01. Voorgevel", alle regels op volgorde van opname.
+function meetstaat(p) {
+  return p.submappen.map((s, i) => ({ nr: String(i + 1).padStart(2, '0'), naam: s.naam,
+    regels: [...(s.notities || [])].reverse().flatMap(n => formRegels(n, s)) })).filter(g => g.regels.length);
+}
+function meetstaatHtml(p) {
+  const g = meetstaat(p);
+  if (!g.length) return '<div style="color:var(--muted)">Nog geen regels. Spreek opnames in bij de foto\'s of in de submap.</div>';
+  return `<div class="card meetstaat">${g.map(x => `<div class="gevel">${x.nr}. ${esc(x.naam)} <span>1 x</span></div>${formTabelHtml(x.regels)}`).join('')}</div>`;
+}
 const postRij = p => [p.object, p.onderdeel, p.omschrijving, p.aantal, p.eenheid, p.bewerking, p.locatie, p.breedte, p.hoogte, p.lengte, p.open ? 'Open ?' : 'Compleet', p.opmerking];
-// Invoerlijst om met de hand in Topcalc te typen: gelijke code en bewerking samengevoegd, op volgorde van object en onderdeel.
-const INVOER_KOLOMMEN = ['Object', 'Onderdeel', 'Aantal', 'Eenheid', 'Omschrijving', 'Bewerking', 'Locaties', 'Let op'];
+// Invoerlijst om met de hand in Topcalc te typen: gelijke code en bestekcode samengevoegd, op volgorde van object en onderdeel.
+const INVOER_KOLOMMEN = ['Object', 'Onderdeel', 'Aantal', 'Eenheid', 'Omschrijving', 'Bestek', 'Locaties', 'Let op'];
 function invoerlijst(posten) {
   const groepen = new Map();
   posten.forEach((p, i) => { const k = p.object ? `${postCode(p)}|${p.bewerking}` : '~' + i; if (!groepen.has(k)) groepen.set(k, []); groepen.get(k).push(p); });
@@ -2292,7 +2802,7 @@ function invoerlijst(posten) {
 }
 const letOp = p => !p.object ? 'Geen code' : p.opmerking || (p.open ? 'Maat ontbreekt' : '');
 const invoerRij = p => [p.object, p.onderdeel, p.aantal, p.eenheid, p.omschrijving, p.bewerking, p.locatie, letOp(p)];
-// Totalen per bewerking en per locatie; "gronden, 2x aflakken" telt bij beide bewerkingen.
+// Totalen per bestekcode en per locatie.
 const nieuwTotaal = naam => ({ naam, m2: 0, m1: 0, st: 0, open: 0 });
 function telPost(t, p) { if (p.aantal == null) { t.open++; return; } const k = { M2: 'm2', M1: 'm1', ST: 'st' }[p.eenheid]; if (k) t[k] += p.aantal; }
 const totaalTekst = t => [t.m2 && `${getalNL(t.m2, 2)} m2`, t.m1 && `${getalNL(t.m1, 2)} m1`, t.st && `${getalNL(t.st, 0)} st`].filter(Boolean).join(' · ') || '–';
@@ -2301,7 +2811,7 @@ const totaalRij = t => [t.naam, t.m2 ? rond(t.m2) : null, t.m1 ? rond(t.m1) : nu
 function projectTotalen(posten) {
   const bew = new Map(), loc = new Map(), project = nieuwTotaal('Hele project');
   for (const p of posten.filter(x => x.object)) {
-    for (const n of p.bewerking ? p.bewerking.split(', ') : [p.onderdeel === 'VR' ? 'herstel' : 'geen bewerking']) {
+    for (const n of [p.bewerking || (p.onderdeel === 'VR' ? 'herstel' : 'geen bestekcode')]) {
       if (!bew.has(n)) bew.set(n, nieuwTotaal(n)); telPost(bew.get(n), p);
     }
     if (!loc.has(p.locatie)) loc.set(p.locatie, nieuwTotaal(p.locatie)); telPost(loc.get(p.locatie), p);
@@ -2318,11 +2828,35 @@ const lijnMaten = p => p.submappen.flatMap(s => s.fotos.flatMap((f, fi) => f.lij
 const GEMINI_INGEBOUWD = ''; // vaste sleutel voor het hele team, in te vullen bij het bouwen
 const GEMINI_KEY = 'buildcalc.gemini.sleutel';
 const GEMINI_MODELLEN = ['gemini-flash-latest', 'gemini-3.8-flash'];
+// Reserve als Google het druk heeft (fout 503): eerst even wachten en opnieuw, daarna een lichter model.
+const GEMINI_RESERVE = 'gemini-flash-lite-latest';
+const geminiDruk = status => status === 503 || status === 500 || status === 502 || status === 504;
+const wachtMs = ms => new Promise(r => setTimeout(r, ms));
 const AI = { status: 'uit', fout: null, model: 0, ronde: null, nogmaals: false, luisteraars: new Set() };
 const aiEigen = () => { try { return localStorage.getItem(GEMINI_KEY) || ''; } catch { return ''; } };
 const aiSleutel = () => aiEigen() || GEMINI_INGEBOUWD;
 const aiMeld = (status, fout = null) => { AI.status = status; AI.fout = fout; [...AI.luisteraars].forEach(f => f()); };
 aiMeld(aiSleutel() ? 'aan' : 'uit');
+// In de app staat de sleutel ook als bestand in de app-map. Zo overleeft hij een herstart of update
+// zeker, ook als Android de opslag van de webweergave leegmaakt. Hij gaat nooit mee in een back-up of zip.
+const GEMINI_BESTAND = 'instellingen/gemini.txt';
+async function aiSleutelNaarApp(v) {
+  if (!Native) return;
+  const fs = plugin('Filesystem');
+  try { v ? await fs.writeFile({ path: GEMINI_BESTAND, data: v, directory: 'DATA', encoding: 'utf8', recursive: true })
+    : await fs.deleteFile({ path: GEMINI_BESTAND, directory: 'DATA' }); } catch {}
+}
+async function aiSleutelUitApp() {
+  if (!Native) return;
+  try {
+    const r = await plugin('Filesystem').readFile({ path: GEMINI_BESTAND, directory: 'DATA', encoding: 'utf8' });
+    const v = String(typeof r?.data === 'string' ? r.data : await r?.data?.text?.() || '').trim();
+    if (v.length < 20) return;
+    if (!aiEigen()) { try { localStorage.setItem(GEMINI_KEY, v); } catch {} AI.model = 0; aiMeld('aan'); aiBijwerken(); }
+  } catch {
+    if (aiEigen()) aiSleutelNaarApp(aiEigen()); // sleutel van vóór deze versie ook in de app-map zetten
+  }
+}
 function topcalcKandidaten() {
   const codes = new Set(['508']);
   for (const d of Object.values(DEFS)) { Object.values(d.buiten).forEach(c => codes.add(c)); Object.values(d.binnen).forEach(c => codes.add(c)); if (d.sanering) codes.add(d.sanering); }
@@ -2341,7 +2875,6 @@ opname en de locatie (bijv. Voorgevel of Woonkamer). Bepaal:
 - breedte, hoogte, lengte in meters (komma is decimaalteken; "1,50 bij 1,30" is breedte 1,50 en hoogte 1,30; "25 cm" is 0,25). Laat weg wat niet genoemd is.
 - code: de beste Topcalc-code "OCODE OTCODE" uit de lijst hieronder, passend bij onderdeel, plek, materiaal en profielbreedte (A1 < 10 cm, A2 10-20 cm, A3 20-30 cm).
 - aantal: de hoeveelheid in de eenheid van die code: M2 = breedte x hoogte, M1 bij kozijnen en ramen = omtrek 2 x (breedte + hoogte), anders de lengte; ST = 1. Weglaten als een maat ontbreekt.
-- behandelingen: de schilderbewerkingen in werkvolgorde, kort en met aantal lagen, bijv. ["schuren", "gronden", "2x aflakken"].
 - herstel: aantal plekken houtrot of scheuren dat hersteld moet worden, 0 als er geen is.
 ${woorden ? `Eigen woorden van de gebruiker: ${woorden}.\n` : ''}
 Topcalc-lijst (OCODE objectnaam: OTCODE onderdeel (eenheid); ...):
@@ -2354,8 +2887,8 @@ ${topcalcKandidaten()}
     generationConfig: { temperature: 0, responseMimeType: 'application/json',
       responseSchema: { type: 'OBJECT', properties: { onderdeel: { type: 'STRING' }, plek: { type: 'STRING', enum: ['buiten', 'binnen'] },
         materiaal: { type: 'STRING' }, glas: { type: 'BOOLEAN' }, breedte: num, hoogte: num, lengte: num, code: { type: 'STRING' }, aantal: num,
-        behandelingen: { type: 'ARRAY', items: { type: 'STRING' } }, herstel: { type: 'INTEGER' } },
-        required: ['onderdeel', 'plek', 'materiaal', 'code', 'behandelingen', 'herstel'] },
+        herstel: { type: 'INTEGER' } },
+        required: ['onderdeel', 'plek', 'materiaal', 'code', 'herstel'] },
       ...(snel ? { thinkingConfig: { thinkingBudget: 0 } } : {}) },
   };
 }
@@ -2363,30 +2896,88 @@ function leesGeminiAntwoord(j) {
   try {
     const d = JSON.parse(j.candidates[0].content.parts.map(p => p.text || '').join(''));
     if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
-    const velden = ['onderdeel', 'plek', 'materiaal', 'glas', 'breedte', 'hoogte', 'lengte', 'code', 'aantal', 'behandelingen', 'herstel'];
+    const velden = ['onderdeel', 'plek', 'materiaal', 'glas', 'breedte', 'hoogte', 'lengte', 'code', 'aantal', 'herstel'];
     return Object.fromEntries(Object.entries(d).filter(([k, v]) => velden.includes(k) && v != null));
   } catch { return null; }
 }
 async function geminiDuid(tekst, locatie) {
   if (!aiSleutel()) return null;
   aiMeld('bezig');
-  let snel = true;
-  try {
-    for (let poging = 0; poging < 3; poging++) {
-      const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 20000);
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODELLEN[AI.model]}:generateContent`, {
+  let snel = true, druk = 0, traag = 0, netwerk = 0;
+  // Lukt het niet, dan over een minuut stil opnieuw (de notities blijven gewoon staan).
+  const later = () => { if (!AI.wachtTimer) AI.wachtTimer = setTimeout(() => { AI.wachtTimer = null; aiBijwerken(); }, 60000); };
+  for (let poging = 0; poging < 8; poging++) {
+    // Na drukte of een traag antwoord: het lichtere reservemodel, dat meestal sneller antwoordt.
+    const model = (druk >= 3 || traag) && !AI.geenReserve ? GEMINI_RESERVE : GEMINI_MODELLEN[AI.model];
+    const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 30000);
+    let r, body;
+    try {
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST', signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': aiSleutel() },
-        body: JSON.stringify(geminiVerzoek(tekst, locatie, snel)) }).finally(() => clearTimeout(t));
-      const body = await r.text();
-      if (r.ok) { let d = null; try { d = leesGeminiAntwoord(JSON.parse(body)); } catch {} aiMeld(d ? 'aan' : 'fout', d ? null : 'Onverwacht antwoord van Gemini'); return d; }
-      if (r.status === 404 && AI.model < GEMINI_MODELLEN.length - 1) { AI.model++; continue; }
-      if (r.status === 400 && snel && body.includes('thinking')) { snel = false; continue; }
-      aiMeld('fout', [400, 401, 403].includes(r.status) ? 'Sleutel ongeldig of niet toegestaan' : r.status === 429 ? 'Gratis limiet even bereikt, later opnieuw' : `Gemini gaf fout ${r.status}`);
-      return null;
+        body: JSON.stringify(geminiVerzoek(tekst, locatie, snel)) });
+      body = await r.text();
+    } catch (e) {
+      clearTimeout(t);
+      // Geen antwoord binnen 30 seconden: dat ligt meestal aan Google, niet aan je internet.
+      if (e.name === 'AbortError') { if (++traag < 2) continue; later(); aiMeld('fout', navigator.onLine === false ? 'Geen internet' : 'Gemini reageert traag, later vanzelf opnieuw'); return null; }
+      // Verbinding mislukt: nog twee keer proberen voordat we "geen internet" zeggen.
+      if (++netwerk < 3 && navigator.onLine !== false) { await wachtMs(2000); continue; }
+      later(); aiMeld('fout', navigator.onLine === false ? 'Geen internet' : 'Gemini niet bereikbaar, later vanzelf opnieuw'); return null;
     }
-  } catch (e) { aiMeld('fout', e.name === 'AbortError' ? 'Geen antwoord (geen of traag internet)' : 'Geen internet'); }
+    clearTimeout(t);
+    if (r.ok) { let d = null; try { d = leesGeminiAntwoord(JSON.parse(body)); } catch {} aiMeld(d ? 'aan' : 'fout', d ? null : 'Onverwacht antwoord van Gemini'); return d; }
+    if (r.status === 404 && model === GEMINI_RESERVE) { AI.geenReserve = true; continue; } // reservemodel bestaat niet (meer)
+    if (r.status === 404 && AI.model < GEMINI_MODELLEN.length - 1) { AI.model++; continue; }
+    if (r.status === 400 && snel && body.includes('thinking')) { snel = false; continue; }
+    // Google even overbelast: na 1, 2 en 4 seconden opnieuw, daarna met het reservemodel.
+    if (geminiDruk(r.status) && druk < 4) { druk++; await wachtMs([1000, 2000, 4000, 1000][druk - 1]); continue; }
+    if (geminiDruk(r.status)) later();
+    aiMeld('fout', geminiDruk(r.status) ? 'Google is even overbelast, later vanzelf opnieuw' : [400, 401, 403].includes(r.status) ? 'Sleutel ongeldig of niet toegestaan' : r.status === 429 ? 'Gratis limiet even bereikt, later opnieuw' : `Gemini gaf fout ${r.status}`);
+    return null;
+  }
+  aiMeld('fout', 'Gemini werkt even niet, later vanzelf opnieuw'); later();
   return null;
+}
+// Gemini kijkt naar de foto en wijst het kozijn aan dat je noemt ("links boven", "midden").
+// Andere letters op dezelfde foto gaan mee, zodat B niet op het kozijn van A komt.
+async function fotoVoorAi(id, max = 768) {
+  const blob = await fotoLaad(id); if (!blob) return null;
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(blob); });
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = Object.assign(document.createElement('canvas'), { width: Math.round(img.naturalWidth * k), height: Math.round(img.naturalHeight * k) });
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(img.src);
+  const url = c.toDataURL('image/jpeg', 0.7); c.width = c.height = 0;
+  return url.slice(url.indexOf(',') + 1);
+}
+async function geminiZoekKozijn(f, label, delen) {
+  if (!aiSleutel()) return null;
+  try {
+    const data = await fotoVoorAi(f.id); if (!data) return null;
+    const anderen = (f.labels || []).filter(l => l !== label).map(l => `${l.tekst} linksboven op ${Math.round(l.x * 1000)}, ${Math.round(l.y * 1000)}`).join('; ');
+    const vraag = `Dit is een foto van een gevel of ruimte, gemaakt door een schilder. Zoek het ${delen.ding || 'kozijn'} dat hij bedoelt met de plek "${delen.waar || 'niet genoemd'}". `
+      + `Links en rechts zijn de linker- en rechterkant van de foto, boven en onder de bovenste en onderste rij, midden het middelste. `
+      + (anderen ? `Deze onderdelen zijn al gemarkeerd, kies een ander: ${anderen}. ` : '')
+      + `Geef de buitenrand van dat ${delen.ding || 'kozijn'} als links, boven, rechts en onder, van 0 tot 1000 (links 0 = linkerrand van de foto, boven 0 = bovenrand). Zet gevonden op false als je het niet ziet.`;
+    let r = null;
+    // Bij drukte (503) nog twee keer: na 2 seconden, en daarna met het reservemodel.
+    for (let poging = 0; poging < 3; poging++) {
+      const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 25000);
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${poging === 2 ? GEMINI_RESERVE : GEMINI_MODELLEN[AI.model]}:generateContent`, {
+        method: 'POST', signal: ctrl.signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': aiSleutel() },
+        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ inline_data: { mime_type: 'image/jpeg', data } }, { text: vraag }] }],
+          generationConfig: { temperature: 0, responseMimeType: 'application/json',
+            responseSchema: { type: 'OBJECT', properties: { gevonden: { type: 'BOOLEAN' }, links: { type: 'INTEGER' }, boven: { type: 'INTEGER' }, rechts: { type: 'INTEGER' }, onder: { type: 'INTEGER' } }, required: ['gevonden'] } } }),
+      }).finally(() => clearTimeout(t));
+      if (!geminiDruk(r.status)) break;
+      if (poging < 2) await wachtMs(2000);
+    }
+    if (!r.ok) return null;
+    const j = await r.json(), d = JSON.parse(j.candidates[0].content.parts.map(p => p.text || '').join(''));
+    const ok = v => v >= 0 && v <= 1000;
+    if (!d?.gevonden || ![d.links, d.boven, d.rechts, d.onder].every(ok) || d.rechts - d.links < 20 || d.onder - d.boven < 20) return null;
+    return { x0: d.links / 1000, y0: d.boven / 1000, x1: d.rechts / 1000, y1: d.onder / 1000 };
+  } catch { return null; }
 }
 // Notities zonder (actuele) duiding alsnog laten duiden; stopt stil bij een fout.
 function aiBijwerken() {
@@ -2428,16 +3019,24 @@ function toonAiInstellingen() {
   info();
   const inp = $('#aiS', d), ok = $('#aiOk', d);
   inp.oninput = () => { ok.disabled = inp.value.trim().length < 20; };
-  const zet = v => { try { v ? localStorage.setItem(GEMINI_KEY, v) : localStorage.removeItem(GEMINI_KEY); } catch {} AI.model = 0; aiMeld(aiSleutel() ? 'aan' : 'uit'); inp.value = ''; ok.disabled = true; info(); aiBijwerken(); };
-  ok.onclick = () => zet(inp.value.trim());
-  $('#aiWis', d).onclick = () => zet('');
-  $('#aiTst', d).onclick = async () => {
+  const zet = v => { try { v ? localStorage.setItem(GEMINI_KEY, v) : localStorage.removeItem(GEMINI_KEY); } catch {} aiSleutelNaarApp(v); AI.model = 0; aiMeld(aiSleutel() ? 'aan' : 'uit'); inp.value = ''; ok.disabled = true; info(); };
+  const test = async () => {
     const zin = 'kozijn 1,50 bij 1,30 houtrot gronden en 2x aflakken', uit = $('#aiTest', d);
     uit.textContent = 'Testen…';
     const r = await geminiDuid(zin, 'Voorgevel');
     uit.textContent = r ? `Werkt. "${zin}" werd ${aiPostTekst(postenVoorNotitie(zin, 'Voorgevel', () => null, r))}.` : `Niet gelukt: ${AI.fout || 'onbekende fout'}`;
-    info();
+    info(); return !!r;
   };
+  // Opslaan zet Gemini direct aan: sleutel bewaren, meteen testen en bij succes het venster sluiten.
+  // Het venster sluit meteen; het testen gebeurt op de achtergrond, zodat de app nooit blijft wachten.
+  ok.onclick = () => {
+    zet(inp.value.replace(/\s+/g, ''));
+    sluit(d); toast('Sleutel opgeslagen. Gemini wordt getest…');
+    geminiDuid('kozijn 1,50 bij 1,30 houtrot gronden en 2x aflakken', 'Voorgevel')
+      .then(r => { toast(r ? 'Gemini staat aan en werkt.' : `Gemini werkt nog niet: ${AI.fout || 'onbekende fout'}`); if (r) aiBijwerken(); });
+  };
+  $('#aiWis', d).onclick = () => zet('');
+  $('#aiTst', d).onclick = test;
 }
 
 // ---------- back-up: alles of één project in één bestand, ook terug te zetten in de Android-app ----------
@@ -2716,11 +3315,18 @@ class Pdf {
 // Tekent de foto met maatlijnen op een canvas en geeft een JPEG terug.
 // Uitgeschreven rekenregel voor kantoor: (2 × B) + (2 × H) + (stijlen × H) [+ (dorpels × B)].
 const m1 = v => v.toFixed(2).replace('.', ',') + ' m1';
-function kozijnMaten(f) {
-  const hor = f.lijnen.find(l => l.richting === 'horizontaal' && l.maat != null), ver = f.lijnen.find(l => l.richting === 'verticaal' && l.maat != null);
+// Per kozijn: zonder letter de gewone lijnen van de foto, met letter ("A") de lijnen van dat kozijn.
+const kozijnLetters = f => [...new Set(f.lijnen.map(l => l.kozijn).filter(Boolean))].sort();
+const kozijnenVan = f => [...(f.lijnen.some(l => !l.kozijn) ? [null] : []), ...kozijnLetters(f)];
+function kozijnMaten(f, letter = null) {
+  const eigen = f.lijnen.filter(l => (l.kozijn || null) === letter);
+  const hor = eigen.find(l => l.richting === 'horizontaal' && l.maat != null), ver = eigen.find(l => l.richting === 'verticaal' && l.maat != null);
   if (!hor || !ver) return null;
   const B = hor.maat, H = ver.maat, st = lijnAantal(ver), dp = lijnAantal(hor);
-  return { B, H, st, dp, totaal: 2 * B + 2 * H + st * H + dp * B };
+  // Bij een kozijn met letter: extra stijlen en dorpels uit de notitie, wel meegeteld maar niet op de foto getekend.
+  const lb = letter && (f.labels || []).find(l => l.tekst === letter);
+  const extra = lb ? extraDelen(lb.notitie || '', B, H) : [], ex = extra.reduce((a, d) => a + d.aantal * d.m, 0);
+  return { B, H, st, dp, extra, ex, totaal: 2 * B + 2 * H + st * H + dp * B + ex };
 }
 function kozijnBerekening(f) {
   const k = kozijnMaten(f); if (!k) return null;
@@ -2747,6 +3353,7 @@ async function fotoMetLijnen(foto, maxB = PDF_FOTO_MAX) {
   for (const l of foto.lijnen)
     canvasPijl(g, l.x1 * w, l.y1 * h, l.x2 * w, l.y2 * h, lijnLabel(l), l.maat != null ? '#FFFFFF' : '#FFA726', s);
   for (const b of foto.opmerkingen || []) canvasBallon(g, b, w, h, s * 1.4);
+  for (const l of foto.labels || []) canvasLabel(g, l, w, h, s * 1.4);
   const jpeg = await new Promise(res => c.toBlob(res, 'image/jpeg', PDF_FOTO_KWALITEIT));
   c.width = c.height = 0; // geheugen van het canvas direct vrijgeven
   return { jpeg: new Uint8Array(await jpeg.arrayBuffer()), w, h };
@@ -2770,92 +3377,38 @@ async function maakPdf(p, posten) {
   for (const [k, v] of [['Adres', p.adres], ['Werknummer', p.werknummer], ['Klant', p.klant], ['Datum', datumNL(new Date())]]) {
     pdf.tekst(M, y + 10, k, 10, { kleur: '#757575' }); pdf.tekst(M + 90, y + 10, v, 10); y += 15;
   }
-  if (posten.some(x => x.object)) {
-    const t = projectTotalen(posten);
-    y += 18; pdf.tekst(M, y + 12, 'Totalen', 15); y += 24;
-    const tabel = (naam, lijst) => {
-      const kol = [[naam, 245], ['m2', 70, true], ['m1', 70, true], ['st', 50, true], ['Zonder maat', 80, true]];
-      ruimte(16 + 16 * lijst.length);
-      pdf.rect(M, y, 515, 16, '#D4AF37'); let x = M;
-      for (const [n, w, r] of kol) { pdf.tekst(r ? x + w - 4 : x + 4, y + 11, n, 8.5, { vet: true, kleur: '#121212', rechts: r }); x += w; }
-      y += 16;
-      lijst.forEach((tt, i) => {
-        if (i % 2) pdf.rect(M, y, 515, 16, '#F5F0E0');
-        const w = [tt.naam, tt.m2 ? getalNL(tt.m2, 2) : '', tt.m1 ? getalNL(tt.m1, 2) : '', tt.st ? getalNL(tt.st, 0) : '', tt.open ? String(tt.open) : ''];
-        let x = M; kol.forEach(([, bw, r], k) => { pdf.tekst(r ? x + bw - 4 : x + 4, y + 11, w[k], 8.5, { vet: tt === t.project, kleur: '#212121', rechts: r }); x += bw; });
-        y += 16;
+  // Meetstaat zoals in Topcalc, om regel voor regel over te typen.
+  const ms = meetstaat(p);
+  if (ms.length) {
+    y += 18; pdf.tekst(M, y + 12, 'Meetstaat Topcalc', 15); y += 18;
+    for (const r of breek('Maten in cm. Strekkend is inclusief extra stijlen en dorpels; +150 achter de omschrijving tel je in Topcalc met F8 erbij. F1 = foto 1, Rp = raampartij, Kz = kozijn, Rm = raam, Dr = deur, Bd = boeideel, LB = links boven.', 8.5, B)) { pdf.tekst(M, y + 9, r, 8.5, { kleur: '#757575' }); y += 11; }
+    y += 5;
+    const mk = [40, 34, 0, 52, 52, 60, 44, 60], mr = [false, false, false, true, true, true, true, false];
+    mk[2] = B - mk.reduce((a, b) => a + b, 0);
+    const mkop = () => { pdf.rect(M, y, B, 16, '#212121'); let x = M; FORM_KOLOMMEN.forEach((k, c) => { pdf.tekst(mr[c] ? x + mk[c] - 4 : x + 4, y + 11, k, 8.5, { vet: true, kleur: '#D4AF37', rechts: mr[c] }); x += mk[c]; }); y += 16; };
+    for (const g of ms) {
+      if (y + 50 > pdf.H - M - 20) nieuwePagina();
+      y += 6; pdf.tekst(M, y + 11, `${g.nr}. ${g.naam}`, 10.5, { vet: true }); pdf.tekst(M + B, y + 11, '1 x', 9, { kleur: '#757575', rechts: true }); y += 16;
+      mkop();
+      g.regels.forEach((r, i) => {
+        const cellen = r.map((v, c) => c === 2 ? breek(v, 9, mk[c] - 8) : [v]);
+        const hoog = 6 + 12 * Math.max(...cellen.map(x => x.length));
+        if (y + hoog > pdf.H - M - 20) { nieuwePagina(); pdf.tekst(M, y + 11, `${g.nr}. ${g.naam} (vervolg)`, 10.5, { vet: true }); y += 16; mkop(); }
+        if (i % 2) pdf.rect(M, y, B, hoog, '#F5F0E0');
+        let x = M;
+        cellen.forEach((regels, c) => { regels.forEach((t, j) => pdf.tekst(mr[c] ? x + mk[c] - 4 : x + 4, y + 12 + j * 12, t, 9, { vet: c < 2, rechts: mr[c], kleur: t === '?' ? '#E65100' : '#212121' })); x += mk[c]; });
+        y += hoog; pdf.lijn(M, y, M + B, y, '#E0E0E0', 0.5);
       });
-      y += 8;
-    };
-    tabel('Per bewerking', [...t.perBewerking, t.project]);
-    if (t.perLocatie.length > 1) tabel('Per locatie', t.perLocatie);
+      y += 6;
+    }
   }
-  y += 18; pdf.tekst(M, y + 12, 'Invoerlijst Topcalc', 15); y += 24; posten = invoerlijst(posten);
-  if (!posten.length) { pdf.tekst(M, y + 10, 'Nog geen posten. Spreek opnames in via de knop Spraak in het project.', 10); y += 16; }
-  else {
-    const kol = [['Code', 44], ['Omschrijving', 165], ['Aantal', 40, true], ['Eenh.', 30], ['Bewerking', 101], ['Locatie', 70], ['Let op', 65]];
-    const kop = () => {
-      pdf.rect(M, y, B, 16, '#D4AF37'); let x = M;
-      for (const [n, w, r] of kol) { pdf.tekst(r ? x + w - 4 : x + 4, y + 11, n, 8.5, { vet: true, kleur: '#121212', rechts: r }); x += w; }
-      y += 16;
-    };
-    kop();
-    posten.forEach((post, i) => {
-      const omschr = breek(post.omschrijving, 8.5, 165 - 8), bew = breek(post.bewerking || '', 8.5, 101 - 8), hoog = 6 + 11 * Math.max(omschr.length, bew.length, breek(post.locatie, 8.5, 62).length, breek(letOp(post), 8.5, 57).length);
-      if (y + hoog > pdf.H - M - 20) { nieuwePagina(); kop(); }
-      if (i % 2) pdf.rect(M, y, B, hoog, '#F5F0E0');
-      const waarden = [postCode(post), omschr, post.aantal == null ? '?' : getalNL(post.aantal, post.eenheid === 'ST' ? 0 : 2), post.eenheid, bew, breek(post.locatie, 8.5, 62), breek(letOp(post), 8.5, 57)];
-      let x = M;
-      kol.forEach(([, w, r], k) => {
-        const v = waarden[k], kleur = k === 6 && post.open ? '#E65100' : '#212121';
-        (Array.isArray(v) ? v : [String(v)]).forEach((t, j) => pdf.tekst(r ? x + w - 4 : x + 4, y + 12 + j * 11, t, 8.5, { kleur, rechts: r }));
-        x += w;
-      });
-      y += hoog; pdf.lijn(M, y, M + B, y, '#E0E0E0', 0.5);
-    });
-  }
-  // Eén overzichtstabel per submap, overname-klaar voor TopCalc.
-  const kozijnTabel = s => {
-    const rijen = s.fotos.map((f, fi) => ({ fi, k: kozijnMaten(f) })).filter(r => r.k || s.fotos[r.fi].lijnen.length);
-    if (!rijen.length) return;
-    const kol = [['Kozijn', 40], ['TopCalc Code', 74], ['Buitenmaat', 80], ['Stijlen / dorpels', 108], ['Berekening', B - 40 - 74 - 80 - 108 - 52], ['Totaal m1', 52, true]];
-    const kop = () => {
-      pdf.rect(M, y, B, 16, '#D4AF37'); let x = M;
-      for (const [n, w, r] of kol) { pdf.tekst(r ? x + w - 4 : x + 4, y + 11, n, 8.5, { vet: true, kleur: '#121212', rechts: r }); x += w; }
-      y += 16;
-    };
-    ruimte(60); pdf.tekst(M, y + 10, `Overzicht kozijnen ${s.naam}`, 11, { vet: true }); y += 18; kop();
-    let som = 0, compleet = true;
-    rijen.forEach(({ fi, k }, i) => {
-      const cm = maatLabel;
-      const f = s.fotos[fi], code = f.type ? [f.type.code, ...breek(f.type.naam, 7.5, kol[1][1] - 8)] : '';
-      const waarden = k ? [
-        `Foto ${fi + 1}`, code, `${cm(k.B)} x ${cm(k.H)}`,
-        k.st || k.dp ? [...(k.st ? [`${k.st}x ${cm(k.H)} = ${m1(k.st * k.H)}`] : []), ...(k.dp ? [`${k.dp}x ${cm(k.B)} dorpel = ${m1(k.dp * k.B)}`] : [])] : 'geen',
-        breek(`(2 × ${cm(k.B)}) + (2 × ${cm(k.H)})${k.st ? ` + (${k.st} × ${cm(k.H)})` : ''}${k.dp ? ` + (${k.dp} × ${cm(k.B)})` : ''}`, 8.5, kol[4][1] - 8),
-        m1(k.totaal)] : [`Foto ${fi + 1}`, code, 'maat ontbreekt', '', '', '?'];
-      if (k) som += k.totaal; else compleet = false;
-      const hoog = 6 + 11 * Math.max(...waarden.map(v => Array.isArray(v) ? v.length : 1));
-      if (y + hoog > pdf.H - M - 20) { nieuwePagina(); kop(); }
-      if (i % 2) pdf.rect(M, y, B, hoog, '#F5F0E0');
-      let x = M;
-      kol.forEach(([, w, r], c) => {
-        const kleur = !k && c === 2 ? '#E65100' : '#212121';
-        // TopCalc-code vet, de omschrijving eronder klein.
-        (Array.isArray(waarden[c]) ? waarden[c] : [waarden[c]]).forEach((t, j) => pdf.tekst(r ? x + w - 4 : x + 4, y + 12 + j * (c === 1 && j ? 9.5 : 11), t, c === 1 && j ? 7.5 : 8.5, { kleur: c === 1 && j ? '#616161' : kleur, rechts: r, vet: c === 5 || c === 1 && !j }));
-        x += w;
-      });
-      y += hoog; pdf.lijn(M, y, M + B, y, '#E0E0E0', 0.5);
-    });
-    ruimte(20);
-    pdf.lijn(M, y, M + B, y, '#212121', 0.7);
-    pdf.tekst(M + 4, y + 13, `Totaal strekkende meters (m1) schilderwerk ${s.naam}${compleet ? '' : ' (excl. open maten)'}`, 9, { vet: true });
-    pdf.tekst(M + B - 4, y + 13, m1(som), 9, { vet: true, rechts: true }); y += 30;
-  };
-  for (const s of p.submappen) {
-    if (!s.fotos.length && !(s.notities || []).length) continue;
+  // Geen totalen en geen opgetelde lijst: in Topcalc wordt alles los ingevoerd, regel voor regel uit de meetstaat.
+  if (!ms.length) { y += 18; pdf.tekst(M, y + 10, 'Nog geen regels. Spreek opnames in bij de foto\'s of in de submap.', 10); y += 16; }
+  // Daarna per gevel de foto's met maatlijnen, met hetzelfde nummer als in de meetstaat.
+  for (const [si, s] of p.submappen.entries()) {
+    if (!s.fotos.length) continue;
     nieuwePagina();
-    pdf.tekst(M, y + 14, s.naam, 18); pdf.lijn(M, y + 20, M + B, y + 20, '#212121', 0.7); y += 34;
+    pdf.tekst(M, y + 14, `${String(si + 1).padStart(2, '0')}. ${s.naam}`, 18); pdf.lijn(M, y + 20, M + B, y + 20, '#212121', 0.7); y += 34;
     for (const [fi, f] of s.fotos.entries()) {
       // Na elke 5 foto's even ademruimte, zodat het scherm blijft reageren.
       if (fi && fi % 5 === 0) await new Promise(r => setTimeout(r, 5));
@@ -2867,23 +3420,11 @@ async function maakPdf(p, posten) {
       pdf.tekst(M, y + 10, `Foto ${fi + 1}`, 10, { vet: true }); y += 16;
       pdf.beeld(b.jpeg, b.w, b.h, M, y, w, h); y += h + 14;
     }
-    kozijnTabel(s);
     const opm = s.fotos.flatMap((f, fi) => (f.opmerkingen || []).filter(b => b.tekst).map(b => `Foto ${fi + 1}: ${b.tekst.replace(/\s+/g, ' ')}`));
     if (opm.length) {
       ruimte(30); pdf.tekst(M, y + 10, `Opmerkingen ${s.naam}`, 11, { vet: true }); y += 18;
       for (const t of opm) { const r = breek(t, 9, B - 14); ruimte(r.length * 12 + 4); pdf.rect(M + 2, y + 4, 4, 4, '#D4AF37'); r.forEach(x => { pdf.tekst(M + 14, y + 10, x, 9); y += 12; }); y += 3; }
       y += 10;
-    }
-    if ((s.notities || []).length) {
-      ruimte(30); pdf.tekst(M, y + 10, 'Notities', 10, { vet: true }); y += 18;
-      for (const n of [...s.notities].reverse()) {
-        const r = herken(n.tekst);
-        const regels = breek(n.tekst + (r.ontbrekend.length ? `  (maat ontbreekt: ${r.ontbrekend.join(', ')})` : ''), 10, B - 14);
-        ruimte(regels.length * 13 + 4);
-        pdf.rect(M + 2, y + 4, 4, 4, '#212121');
-        regels.forEach(t => { pdf.tekst(M + 14, y + 10, t, 10); y += 13; });
-        y += 3;
-      }
     }
   }
   // Paginanummers
@@ -2911,7 +3452,7 @@ function totalenHtml(t) {
     <span style="text-align:right;${vet ? 'font-weight:600;color:var(--gold)' : 'font-weight:500'}">${totaalTekst(x)}${x.open ? `<small style="display:block;color:var(--open);font-weight:400">+ ${x.open} zonder maat</small>` : ''}</span></div>`;
   const kop = k => `<div style="color:var(--muted);font-size:12px;letter-spacing:1px;margin-top:12px">${k}</div>`;
   return `<div class="card" style="padding:12px 16px;margin:4px 0 16px"><div class="label" style="margin:0 0 6px">TOTALEN</div>${regel(t.project, true)}
-    ${kop('PER BEWERKING')}${t.perBewerking.map(x => regel(x)).join('')}${t.perLocatie.length > 1 ? kop('PER LOCATIE') + t.perLocatie.map(x => regel(x)).join('') : ''}</div>`;
+    ${kop('PER BESTEKCODE')}${t.perBewerking.map(x => regel(x)).join('')}${t.perLocatie.length > 1 ? kop('PER LOCATIE') + t.perLocatie.map(x => regel(x)).join('') : ''}</div>`;
 }
 function renderRapport(m) {
   if (!projecten.length) { m.innerHTML = `<div class="ph">${ic('doc', 'i big')}<p>Maak eerst een project aan op het scherm Projecten.</p></div>`; return; }
@@ -2924,19 +3465,19 @@ function renderRapport(m) {
   const tegel = (n, l, kl) => `<div class="tegel"><b style="${kl ? `color:${kl}` : ''}">${n}</b><small>${l}</small></div>`;
   m.innerHTML = `<div class="pad" style="padding-bottom:32px">
     <label class="field"><span>Project</span><select id="rpP">${projecten.map(x => `<option value="${x.id}" ${x === p ? 'selected' : ''}>${x.verstuurd ? '✓ ' : ''}${esc(x.werknummer)} • ${esc(x.adres)}</option>`).join('')}</select></label>
-    <div class="tegels">${tegel(regels.length, 'regels')}${tegel(maten.length, 'lijnen')}${tegel(fotos, "foto's")}${tegel(open, 'open', open ? 'var(--open)' : '')}</div>
+    <div class="tegels">${tegel(meetstaat(p).reduce((a, g) => a + g.regels.length, 0), 'regels')}${tegel(maten.length, 'lijnen')}${tegel(fotos, "foto's")}${tegel(open, 'open', open ? 'var(--open)' : '')}</div>
     ${open ? `<div class="melding" style="color:var(--open)">Let op: bij ${open} ${open === 1 ? 'opname of lijn ontbreekt' : 'opnames of lijnen ontbreekt'} nog een maat. Je kunt toch exporteren; open posten staan gemarkeerd.</div>` : ''}
-    ${regels.some(x => x.object) ? totalenHtml(projectTotalen(posten)) : ''}
     ${p.verstuurd ? `<div class="melding ok" style="display:flex;justify-content:space-between;align-items:center">Verstuurd op ${datumNL(new Date(p.verstuurd))}<button class="ghost" id="rpOngedaan" style="color:var(--muted);padding:0">Ongedaan maken</button></div>` : ''}
     <button class="primary" id="rpStuur" ${RP.bezig ? 'disabled' : ''}>${ic('stuur')} ${RP.bezig === 'stuur' ? 'Rapport maken…' : `Versturen: ${esc(p.werknummer)}`}</button>
     <div style="color:var(--muted);font-size:12px;text-align:center;margin:6px 0 10px">De PDF van dit project via WhatsApp, mail of een andere app. Er wordt niets opgeslagen.</div>
     <button class="outline" id="rpXlsx" ${RP.bezig ? 'disabled' : ''}>${ic('table')} ${RP.bezig === 'xlsx' ? 'Excel maken…' : 'Alleen Excel opslaan'}</button>
     <button class="outline" id="rpPdf" style="margin-top:10px" ${RP.bezig ? 'disabled' : ''}>${ic('pdf')} ${RP.bezig === 'pdf' ? 'PDF maken…' : 'Alleen PDF opslaan'}</button>
-    <div class="label" style="margin-top:28px">INVOERLIJST TOPCALC (${regels.length})</div>
-    ${regels.length ? '<div style="color:var(--muted);font-size:13px;margin-bottom:8px">Op volgorde van object en onderdeel, gelijke codes opgeteld. Zo typ je ze in één keer over in Topcalc.</div>' + regels.map((x, i) => `<div class="post ${x.open ? 'open' : ''}" ${x.object ? '' : `data-leer="${i}" style="cursor:pointer"`}><span class="pcode ${x.object ? '' : 'leeg'}">${esc(postCode(x) || '—')}</span>
-      <div class="pinfo"><div>${esc(x.omschrijving)}</div><small>${esc([x.locatie, x.bewerking, x.object ? x.opmerking : 'tik om een woord te leren', x.doorAi ? 'Gemini' : ''].filter(Boolean).join(' • '))}</small></div>
-      <b>${x.aantal == null ? '?' : getalNL(x.aantal, x.eenheid === 'ST' ? 0 : 2)} ${x.eenheid.toLowerCase()}${x.open && x.aantal != null ? ' ?' : ''}</b></div>`).join('')
-      : '<div style="color:var(--muted)">Nog geen posten. Spreek opnames in via de knop Spraak in het project, bijvoorbeeld "kozijn 1,50 bij 1,30 gronden en 2x aflakken".</div>'}
+    <div class="label" style="margin-top:28px">MEETSTAAT TOPCALC</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Precies zoals in Topcalc, per gevel onder elkaar. Maten in cm; +150 achter de omschrijving tel je met F8 bij strekkend. F1 = foto 1, Rp = raampartij, LB = links boven.</div>
+    ${meetstaatHtml(p)}
+    ${regels.some(x => !x.object) ? `<div class="label" style="margin-top:28px">ZONDER TOPCALC-CODE</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Hier vond de app geen code. Tik erop om een woord te leren.</div>` + regels.map((x, i) => x.object ? '' : `<div class="post open" data-leer="${i}" style="cursor:pointer"><span class="pcode leeg">—</span>
+      <div class="pinfo"><div>${esc(x.omschrijving)}</div><small>${esc([x.locatie, 'tik om een woord te leren'].join(' • '))}</small></div><b></b></div>`).join('') : ''}
     ${koppelingen.length ? `<div class="label" style="margin-top:28px">TOPCALC-KOPPELINGEN</div>
     <div style="color:var(--muted);font-size:13px;margin-bottom:8px">De app kiest de code uit je Topcalc-lijst op onderdeel, binnen of buiten, materiaal en maat. Tik op een koppeling om een andere code te kiezen.</div>
     <div class="card codes">${koppelingen.map(([k, x]) => `<button data-sleutel="${esc(k)}"><span>${esc(sleutelLabel(k))}<small style="display:block;color:var(--muted);font-size:12px">${esc(TC.get(x.object)?.naam || '')}</small></span><b class="${k in eigenCodes ? 'eigen' : ''}">${esc(postCode(x))}</b></button>`).join('')}</div>` : ''}
@@ -2948,8 +3489,7 @@ function renderRapport(m) {
     RP.bezig = null; render();
   };
   const excel = () => maakXlsx([
-    { naam: 'Invoeren', kop: INVOER_KOLOMMEN, rijen: regels.map(invoerRij), breedtes: [8, 10, 10, 8, 45, 28, 24, 26] },
-    { naam: 'Totalen', kop: TOTAAL_KOLOMMEN, rijen: (t => [totaalRij(t.project), [], ['Per bewerking'], ...t.perBewerking.map(totaalRij), [], ['Per locatie'], ...t.perLocatie.map(totaalRij)])(projectTotalen(posten)), breedtes: [26, 10, 10, 8, 12] },
+    { naam: 'Meetstaat', kop: ['Gevel', ...FORM_KOLOMMEN], rijen: meetstaat(p).flatMap(g => g.regels.map(r => [`${g.nr}. ${g.naam}`, ...r.map((v, c) => c > 2 && c < 7 && /^\d+$/.test(v) ? +v : v)])), breedtes: [18, 7, 7, 40, 9, 9, 10, 8, 10] },
     { naam: 'Opname', kop: TOPCALC_KOLOMMEN, rijen: [...posten].sort((a, b) => (!a.object - !b.object) || postCode(a).localeCompare(postCode(b))).map(postRij), breedtes: [8, 10, 45, 10, 8, 28, 16, 11, 11, 11, 10, 50] },
     { naam: 'Maten', kop: ['Locatie', 'Foto', 'TopCalc code', 'Lijn', 'Richting', 'Maat (m)', 'Aantal stijlen/dorpels', 'Bron'],
       rijen: maten.map(x => [x.locatie, x.foto, x.code, x.nr, x.lijn.richting === 'horizontaal' ? 'Horizontaal' : 'Verticaal', x.lijn.maat, lijnAantal(x.lijn), x.lijn.bron || (x.lijn.maat == null ? 'open' : '')]), breedtes: [16, 6, 12, 6, 12, 10, 12, 10] },
@@ -3304,7 +3844,8 @@ const VERTALING = {
   "Deze browser kan de PDF niet direct delen. De mail opent met het overzicht; de PDF kun je apart opslaan.": ["This browser can't share the PDF directly. Your email opens with the overview; save the PDF separately.", "Dieser Browser kann das PDF nicht direkt teilen. Die E-Mail öffnet sich mit der Übersicht; speichere das PDF separat."],
   "Rapport klaar": ["Report ready", "Bericht fertig"],
   "De PDF staat klaar om te delen via WhatsApp, mail of een andere app.": ["The PDF is ready to share via WhatsApp, email or another app.", "Das PDF ist bereit zum Teilen per WhatsApp, E-Mail oder einer anderen App."],
-  "Delen": ["Share", "Teilen"]
+  "Delen": ["Share", "Teilen"],
+  "Ik heb niets verstaan. Tik op de microfoon en spreek rustig, dicht bij de telefoon.": ["I didn't catch anything. Tap the microphone and speak calmly, close to the phone.", "Ich habe nichts verstanden. Tippe auf das Mikrofon und sprich ruhig, nah am Telefon."]
 };
 // Teksten met een getal of naam erin: [patroon, Engels, Duits]
 const VERTAAL_PATRONEN = [
@@ -3394,7 +3935,7 @@ function renderInstellingen(m) {
   const knop = (soort, waarde, label, aan) => `<button data-${soort}="${waarde}" class="${aan ? 'on' : ''}">${label}</button>`;
   const [ut] = updateTekst();
   m.innerHTML = `<div class="pad" style="padding-bottom:32px">
-    <div class="isec"><h4>${ic('ster')} GEMINI AI</h4><div class="rij"><div><b>${aiEigen() ? 'Eigen sleutel ingesteld' : GEMINI_INGEBOUWD ? 'Ingebouwde sleutel' : 'Nog geen sleutel'}</b><br><small>${{ uit: 'Uit', fout: 'Offline of fout', aan: 'Aan', bezig: 'Bezig…' }[AI.status]}</small></div>
+    <div class="isec"><h4>${ic('ster')} GEMINI AI</h4><div class="rij"><div><b>${aiEigen() ? 'Eigen sleutel ingesteld' : GEMINI_INGEBOUWD ? 'Ingebouwde sleutel' : 'Nog geen sleutel'}</b><br><small>${{ uit: 'Uit', fout: 'Offline of fout', aan: 'Aan', bezig: 'Bezig…' }[AI.status]}${AI.status === 'fout' && AI.fout ? ': ' + esc(AI.fout) : ''}</small></div>
       <button class="outline" id="iAi" style="color:var(--gold);width:auto;padding:8px 14px">Sleutel instellen</button></div></div>
     <div class="isec"><h4>${ic('bt')} LASERMETER</h4><div id="iLaser"></div></div>
     <div class="isec"><h4>${ic('terugzet')} UPDATES</h4><div class="rij"><div><b>${esc(ut)}</b>${Native ? `<br><small data-nt>versie ${APP_VERSIE} (app)</small>` : ''}</div>
@@ -3424,6 +3965,7 @@ $('#instel').onclick = () => { tab = 'instellingen'; render(); };
 
 render();
 aiBijwerken();
+aiSleutelUitApp();
 if (Native) setTimeout(zoekUpdate, 1500);
 window.addEventListener("online", () => aiBijwerken());
 </script>
