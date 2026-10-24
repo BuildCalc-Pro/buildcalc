@@ -419,7 +419,7 @@ function renderLijst(m) {
 const UPD = { status: null, versie: null, luisteraars: new Set(), melden() { this.luisteraars.forEach(f => f()); } };
 function updateTekst() {
   return { web: [`Webversie ${APP_VERSIE}`, ''], zoeken: ['Updates zoeken…', 'let'], actueel: ['App up-to-date', 'ok'], nieuw: [`Nieuwe versie ${UPD.versie || ''} klaar`, 'let'],
-    offline: ['Offline, updates later', ''], fout: ['Updates niet bereikbaar', ''] }[UPD.status || (Native ? 'zoeken' : 'web')];
+    downloaden: [`Versie ${UPD.versie || ''} downloaden…`, 'let'], offline: ['Offline, updates later', ''], fout: [`Update mislukt${UPD.fout ? ': ' + UPD.fout : ''}`, ''] }[UPD.status || (Native ? 'zoeken' : 'web')];
 }
 function koppelAppStatus(el) {
   const teken = () => {
@@ -1662,7 +1662,7 @@ const termWeergave = x => (x.aantal != null ? `${x.aantal}x ` : '') + x.naam;
 // ---------- Android-app (Capacitor) ----------
 // In de app draait deze pagina in een WebView. Spraak, Bluetooth en bestanden lopen daar via de
 // ingebouwde plug-ins; in de browser blijft alles zoals het was.
-const APP_VERSIE = '2026.10.24-2';
+const APP_VERSIE = '2026.10.24-3';
 const UPDATE_URL = 'https://buildcalc-pro.github.io/buildcalc/';
 const Native = window.Capacitor?.isNativePlatform?.() ? window.Capacitor : null;
 const plugins = {};
@@ -1765,23 +1765,32 @@ async function appBackupLees(naam) {
 const versieGetal = v => String(v).split(/[.-]/).map(n => +n || 0);
 const nieuwer = (a, b) => { const x = versieGetal(a), y = versieGetal(b); for (let i = 0; i < Math.max(x.length, y.length); i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return false; };
 async function zoekUpdate(handmatig = false) {
-  const up = plugin('CapacitorUpdater'); if (!up) return;
+  const up = plugin('CapacitorUpdater');
+  if (!up) { if (handmatig) toast('De update-functie ontbreekt in deze app. Bouw de app één keer opnieuw op de pc.'); return; }
+  if (UPD.bezig) { if (handmatig) toast('Ik ben al aan het zoeken…'); return; }
   const zet = (s, v) => { UPD.status = s; if (v) UPD.versie = v; UPD.melden(); };
-  try { await up.notifyAppReady(); } catch {}
+  // Elke stap heeft een tijdslimiet, zodat de knop nooit stil blijft hangen.
+  try { await metLimiet(up.notifyAppReady(), 3000); } catch {}
   if (!navigator.onLine) { zet('offline'); if (handmatig) toast('Geen internet. Probeer het later opnieuw.'); return; }
-  zet('zoeken');
+  UPD.bezig = true; zet('zoeken'); if (handmatig) toast('Zoeken naar een nieuwe versie…');
   try {
-    const info = await (await fetch(UPDATE_URL + 'versie.json?t=' + Date.now(), { cache: 'no-store' })).json();
-    if (!info?.versie || !nieuwer(info.versie, APP_VERSIE)) { zet('actueel'); if (handmatig) toast('Je hebt de nieuwste versie.'); return; }
-    toast(`Nieuwe versie ${info.versie} wordt gedownload…`);
-    const bundel = await up.download({ url: new URL(info.zip, UPDATE_URL).href, version: info.versie });
+    const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 15000);
+    const r = await fetch(UPDATE_URL + 'versie.json?t=' + Date.now(), { cache: 'no-store', signal: ctrl.signal }).finally(() => clearTimeout(t));
+    if (!r.ok) throw new Error(`versie.json niet gevonden (fout ${r.status})`);
+    const info = await r.json();
+    if (!info?.versie || !nieuwer(info.versie, APP_VERSIE)) { zet('actueel'); if (handmatig) toast(`Je hebt de nieuwste versie (${APP_VERSIE}).`); return; }
+    zet('downloaden', info.versie); toast(`Nieuwe versie ${info.versie} wordt gedownload…`);
+    const bundel = await metLimiet(up.download({ url: new URL(info.zip, UPDATE_URL).href, version: info.versie }), 180000, 'downloaden duurde te lang');
     zet('nieuw', info.versie);
     if (!await bevestig('Nieuwe versie klaar', `Versie ${info.versie} staat klaar. Je projecten en foto's blijven bewaard. Nu herstarten?`, { ja: 'Nu herstarten', nee: 'Later', klasse: 'primary' })) {
       await up.next({ id: bundel.id }); toast('De nieuwe versie start de volgende keer dat je de app opent.'); return;
     }
     if (projecten.length) await backupMaken(null, true);
     await up.set({ id: bundel.id });
-  } catch (e) { console.warn('Update zoeken mislukt', e); zet('fout'); if (handmatig) toast('Updates zoeken lukte niet.'); }
+  } catch (e) {
+    console.warn('Update zoeken mislukt', e); UPD.fout = e.name === 'AbortError' ? 'GitHub gaf geen antwoord' : e.message || String(e); zet('fout');
+    if (handmatig) toast('Update lukte niet: ' + UPD.fout);
+  } finally { UPD.bezig = false; }
 }
 
 const Spraak = {
